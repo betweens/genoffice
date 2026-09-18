@@ -1,21 +1,21 @@
 /* Shared chrome/AI-panel tokens come from @genoffice/ui/tokens.css (imported
  * before this file in main.tsx); only shell-specific tokens live here. */
 :root {
-  /* Genspark DS v4.1: guide/onboarding accent is the brand blue */
-  --accent: #0f7fff;
-  --accent-hover: #0e72e5;
+  /* Fork brand teal #008C82 */
+  --accent: #008c82;
+  --accent-hover: #00756d;
   /* selected-option tint for the shared dropdown (gs-dd) */
-  --accent-soft: #eaf0fd;
+  --accent-soft: #e6f5f4;
   --modal-width-sm: 480px;
   --avatar-bg: #e8ebef;
-  --badge-bg: #eaf0fd;
+  --badge-bg: #e6f5f4;
   --checkbox-bg: #ececec;
   --timeline-user-bg: #eef1f5;
   --timeline-user-text: #5a6170;
   /* lift for the active segment in gray-track tab pills */
   --shadow-pill: 0 1px 2px rgb(0 0 0 / 8%);
 
-  /* genoffice-logo.svg is pure black-and-white; dark themes flip it to 1 */
+  /* legacy token; colorful brand mark no longer uses invert */
   --logo-invert: 0;
 }
 
@@ -23,11 +23,11 @@
 
 /* Explicit dark: [data-theme="dark"] on <html> */
 [data-theme='dark'] {
-  --accent: #3f99ff;
-  --accent-hover: #5ba5ff;
-  --accent-soft: #24354d;
+  --accent: #2bb3a8;
+  --accent-hover: #3fc4b9;
+  --accent-soft: #0f3d39;
   --avatar-bg: #333;
-  --badge-bg: #2a3a4a;
+  --badge-bg: #1a4a45;
   --checkbox-bg: #333;
   --timeline-user-bg: #2a2a3a;
   --timeline-user-text: #b0b0c0;
@@ -42,7 +42,7 @@
     --accent-hover: #5ba5ff;
     --accent-soft: #24354d;
     --avatar-bg: #333;
-    --badge-bg: #2a3a4a;
+    --badge-bg: #1a4a45;
     --checkbox-bg: #333;
     --timeline-user-bg: #2a2a3a;
     --timeline-user-text: #b0b0c0;
@@ -117,10 +117,29 @@ body.vib .home {
 }
 
 .logo-lockup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.logo-mark {
   display: block;
   height: 28px;
-  width: auto;
-  filter: invert(var(--logo-invert));
+  width: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  filter: none;
+}
+
+.logo-text {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-nav {

@@ -1,7 +1,7 @@
 :root {
-  --accent: #232425;
-  --accent-dark: #000000;
-  --accent-soft: rgba(35, 36, 37, 0.1);
+  --accent: #008c82;
+  --accent-dark: #00756d;
+  --accent-soft: rgba(0, 140, 130, 0.12);
   /* document surface: a page without its own background is white in every browser, so the theme never repaints it */
   --preview-page-bg: #ffffff;
   --hx-ai-changed: rgb(255 213 79 / 40%);

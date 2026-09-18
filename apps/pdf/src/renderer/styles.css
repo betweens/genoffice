@@ -1,9 +1,9 @@
 /* Shared chrome/AI-panel tokens come from @genoffice/ui/tokens.css (imported
  * before this file in main.tsx); only pdf-specific values live here. */
 :root {
-  --accent: #c43e1c;
-  --accent-dark: #a33517;
-  --accent-soft: #fbeae5;
+  --accent: #008c82;
+  --accent-dark: #00756d;
+  --accent-soft: #e6f5f4;
 
   /* pdf-local chrome shades */
   --pdf-error: #c0392b;
@@ -70,7 +70,7 @@
   --pdf-shadow-toast: 0 4px 16px rgb(0 0 0 / 25%);
   --pdf-shadow-modal: 0 3px 30px rgb(0 0 0 / 8%);
   --pdf-shadow-modal-gs: 0 12px 40px rgb(0 0 0 / 16%);
-  --pdf-input-focus: #0f7fff;
+  --pdf-input-focus: #008c82;
   --pdf-input-ring: rgb(15 127 255 / 10%);
   --pdf-error-ring: rgb(239 68 68 / 10%);
   --pdf-shadow-page: 0 1px 4px rgb(0 0 0 / 18%);
@@ -80,9 +80,9 @@
 }
 
 [data-theme='dark'] {
-  --accent: #e8663f;
-  --accent-dark: #d4552f;
-  --accent-soft: #43261d;
+  --accent: #2bb3a8;
+  --accent-dark: #3fc4b9;
+  --accent-soft: #0f3d39;
   --pdf-error: #e57373;
   --pdf-error-border: rgb(229 115 115 / 50%);
   --pdf-error-bg-hover: rgb(229 115 115 / 12%);
@@ -105,7 +105,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-theme='dark']) {
-    --accent: #e8663f;
+    --accent: #2bb3a8;
     --accent-dark: #d4552f;
     --accent-soft: #43261d;
     --pdf-error: #e57373;

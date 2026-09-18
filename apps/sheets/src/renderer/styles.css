@@ -2,9 +2,9 @@
  * Chrome tokens (surface/text/border/…, AI panel --color-*) come from
  * @genoffice/ui/tokens.css; nothing here may shadow those names. */
 :root {
-  --excel-green: #217346;
-  --excel-green-dark: #185c37;
-  --excel-green-soft: #e9f3ed;
+  --excel-green: #008c82;
+  --excel-green-dark: #00756d;
+  --excel-green-soft: #e6f5f4;
   --accent: var(--excel-green);
   --accent-dark: var(--excel-green-dark);
   --accent-soft: var(--excel-green-soft);

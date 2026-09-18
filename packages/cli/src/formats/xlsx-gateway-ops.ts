@@ -216,7 +216,7 @@ export interface GatewayBuildInput {
 
 const MAX_SPARKLINES_PER_OP = 200
 
-const NOTE_AUTHOR = 'GenOffice'
+const NOTE_AUTHOR = 'AI Office'
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 
 type FilterDraft = { range: RangeBounds; columns: Map<number, string[]>; cleared: boolean }
@@ -408,7 +408,7 @@ export async function buildGatewayPayloads(input: GatewayBuildInput): Promise<Ga
             reject(
               i,
               op.op,
-              `${sheet}'s filter already has criteria the CLI cannot re-save; run set_filter on the range first (it clears them) or use the GenOffice app`,
+              `${sheet}'s filter already has criteria the CLI cannot re-save; run set_filter on the range first (it clears them) or use the AI Office app`,
             )
           }
           draft = { range: existing!.range, columns: new Map(), cleared: false }
@@ -479,7 +479,7 @@ export async function buildGatewayPayloads(input: GatewayBuildInput): Promise<Ga
           )
         }
         if (op.seriesData !== undefined) {
-          reject(i, op.op, 'seriesData (repointing a series at new cells) needs the GenOffice app')
+          reject(i, op.op, 'seriesData (repointing a series at new cells) needs the AI Office app')
         }
         const edit: Record<string, unknown> = { chartPath: op.chartPath }
         for (const k of [
