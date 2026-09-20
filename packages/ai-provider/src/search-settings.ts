@@ -14,10 +14,14 @@ export const AI_SEARCH_PROVIDERS: AiSearchProviderMeta[] = [
   },
   { id: 'serper', label: 'Serper', keyPlaceholder: 'Serper API key', imageSearch: true },
   { id: 'tavily', label: 'Tavily', keyPlaceholder: 'tvly-...', imageSearch: false },
+  { id: 'bocha', label: 'Bocha', keyPlaceholder: 'Bocha API key', imageSearch: false },
 ]
 
 export function defaultAiSearchSettings(): AiSearchSettings {
-  return { provider: 'genspark', providers: { serper: { apiKey: '' }, tavily: { apiKey: '' } } }
+  return {
+    provider: 'genspark',
+    providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
+  }
 }
 
 export function resolveAiSearchSettings(
@@ -26,7 +30,7 @@ export function resolveAiSearchSettings(
   const defaults = defaultAiSearchSettings()
   if (!stored) return defaults
   const providers = { ...defaults.providers }
-  for (const id of ['serper', 'tavily'] as const) {
+  for (const id of ['serper', 'tavily', 'bocha'] as const) {
     const key = stored.providers?.[id]?.apiKey
     if (typeof key === 'string') providers[id] = { apiKey: key.trim() }
   }

@@ -3,7 +3,7 @@
  * ai-settings.json live and turns the search provider choice into
  * SearchOptions — Genspark keeps the historic chain (gsk when signed in and
  * cloud tools are on, then env keys, then DuckDuckGo); a user Serper / Tavily
- * key runs first and skips gsk.
+ * / Bocha key runs first and skips gsk.
  */
 
 import {
@@ -19,6 +19,7 @@ export function searchOptionsFromSettings(settings: AiSettings): SearchOptions {
   const provider = activeSearchProvider(settings)
   if (provider === 'genspark') return { useGsk: cloudToolsEnabled(settings) }
   const key = settings.search!.providers[provider].apiKey
+  if (provider === 'bocha') return { useGsk: false, bochaKey: key, prefer: 'bocha' }
   return provider === 'tavily'
     ? { useGsk: false, tavilyKey: key, prefer: 'tavily' }
     : { useGsk: false, serperKey: key }
@@ -40,9 +41,11 @@ export async function testSearchProvider(
   if (provider === 'genspark') return { ok: true }
   if (!apiKey) return { ok: false, error: 'API key is empty' }
   const options: SearchOptions =
-    provider === 'tavily'
-      ? { useGsk: false, tavilyKey: apiKey, serperKey: '', prefer: 'tavily' }
-      : { useGsk: false, serperKey: apiKey, tavilyKey: '' }
+    provider === 'bocha'
+      ? { useGsk: false, bochaKey: apiKey, serperKey: '', tavilyKey: '', prefer: 'bocha' }
+      : provider === 'tavily'
+        ? { useGsk: false, tavilyKey: apiKey, serperKey: '', bochaKey: '', prefer: 'tavily' }
+        : { useGsk: false, serperKey: apiKey, tavilyKey: '', bochaKey: '' }
   const r = await webSearch('GenOffice', 1, options)
   if (r.method === provider) return { ok: true }
   return {

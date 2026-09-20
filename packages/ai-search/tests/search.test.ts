@@ -13,6 +13,7 @@ afterEach(() => {
   globalThis.fetch = realFetch
   delete process.env.SERPER_API_KEY
   delete process.env.TAVILY_API_KEY
+  delete process.env.BOCHA_API_KEY
 })
 
 function mockFetch(
@@ -107,6 +108,89 @@ describe('webSearch (Tavily)', () => {
     process.env.TAVILY_API_KEY = 'test-key'
     mockFetch((url) => {
       if (url === 'https://api.tavily.com/search') return { ok: true, json: { results: [] } }
+      expect(url).toContain('duckduckgo.com')
+      return {
+        ok: true,
+        text: '<a class="result__a" href="/l/?uddg=https%3A%2F%2Fx.com">X Title</a>',
+      }
+    })
+    const r = await webSearch('q', 3)
+    expect(r.method).toBe('duckduckgo')
+  })
+})
+
+describe('webSearch (Bocha)', () => {
+  it('parses data.webPages.value and prefers summary over snippet', async () => {
+    process.env.BOCHA_API_KEY = 'test-key'
+    mockFetch((url, init) => {
+      expect(url).toBe('https://api.bocha.cn/v1/web-search')
+      expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer test-key')
+      expect(JSON.parse(String(init?.body ?? '{}'))).toEqual({
+        query: 'meaning of life',
+        count: 5,
+        summary: true,
+        freshness: 'noLimit',
+      })
+      return {
+        ok: true,
+        json: {
+          code: 200,
+          data: {
+            webPages: {
+              value: [
+                { name: 'A', url: 'https://a.com', summary: 'sa', snippet: 'ignored' },
+                { name: 'B', url: 'https://b.com', snippet: 'sb' },
+                { name: 'blank', url: '  ', snippet: 'drop me' },
+                { name: 'no-url', snippet: 'also drop' },
+              ],
+            },
+          },
+        },
+      }
+    })
+    const r = await webSearch('meaning of life', 5)
+    expect(r.method).toBe('bocha')
+    expect(r.results).toHaveLength(2)
+    expect(r.results[0]).toEqual({ title: 'A', url: 'https://a.com', snippet: 'sa' })
+    expect(r.results[1]).toEqual({ title: 'B', url: 'https://b.com', snippet: 'sb' })
+  })
+
+  it('accepts top-level webPages when data.webPages is absent', async () => {
+    process.env.BOCHA_API_KEY = 'test-key'
+    mockFetch(() => ({
+      ok: true,
+      json: {
+        code: 200,
+        webPages: { value: [{ name: 'T', url: 'https://t.com', summary: 'top' }] },
+      },
+    }))
+    const r = await webSearch('q', 3)
+    expect(r.method).toBe('bocha')
+    expect(r.results[0]).toEqual({ title: 'T', url: 'https://t.com', snippet: 'top' })
+  })
+
+  it('falls back to DuckDuckGo when Bocha returns a non-200 code', async () => {
+    process.env.BOCHA_API_KEY = 'test-key'
+    mockFetch((url) => {
+      if (url === 'https://api.bocha.cn/v1/web-search') {
+        return { ok: true, json: { code: 401, data: { webPages: { value: [] } } } }
+      }
+      expect(url).toContain('duckduckgo.com')
+      return {
+        ok: true,
+        text: '<a class="result__a" href="/l/?uddg=https%3A%2F%2Fx.com">X Title</a>',
+      }
+    })
+    const r = await webSearch('q', 3)
+    expect(r.method).toBe('duckduckgo')
+  })
+
+  it('falls back to DuckDuckGo when Bocha returns nothing usable', async () => {
+    process.env.BOCHA_API_KEY = 'test-key'
+    mockFetch((url) => {
+      if (url === 'https://api.bocha.cn/v1/web-search') {
+        return { ok: true, json: { code: 200, data: { webPages: { value: [] } } } }
+      }
       expect(url).toContain('duckduckgo.com')
       return {
         ok: true,
@@ -223,6 +307,27 @@ describe('webSearch (SearchOptions)', () => {
     expect(r.method).toBe('tavily')
     expect(urls).toEqual(['https://api.tavily.com/search'])
   })
+
+  it('tries Bocha first when preferred and never touches Serper on success', async () => {
+    const urls: string[] = []
+    mockFetch((url) => {
+      urls.push(url)
+      return {
+        ok: true,
+        json: { code: 200, data: { webPages: { value: [{ name: 'B', url: 'https://b.com' }] } } },
+      }
+    })
+    const r = await webSearch('q', 3, {
+      useGsk: false,
+      bochaKey: 'bk',
+      serperKey: 'sp',
+      tavilyKey: 'tv',
+      prefer: 'bocha',
+    })
+    expect(r.method).toBe('bocha')
+    expect(urls).toEqual(['https://api.bocha.cn/v1/web-search'])
+    expect(r.results[0]).toEqual({ title: 'B', url: 'https://b.com', snippet: '' })
+  })
 })
 
 describe('search-tools', () => {
@@ -236,7 +341,7 @@ describe('search-tools', () => {
       ...base,
       search: {
         provider: 'serper' as const,
-        providers: { serper: { apiKey: 'k' }, tavily: { apiKey: '' } },
+        providers: { serper: { apiKey: 'k' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
       },
     }
     expect(searchOptionsFromSettings(serper)).toEqual({ useGsk: false, serperKey: 'k' })
@@ -244,7 +349,7 @@ describe('search-tools', () => {
       ...base,
       search: {
         provider: 'tavily' as const,
-        providers: { serper: { apiKey: '' }, tavily: { apiKey: 't' } },
+        providers: { serper: { apiKey: '' }, tavily: { apiKey: 't' }, bocha: { apiKey: '' } },
       },
     }
     expect(searchOptionsFromSettings(tavily)).toEqual({
@@ -252,12 +357,24 @@ describe('search-tools', () => {
       tavilyKey: 't',
       prefer: 'tavily',
     })
+    const bocha = {
+      ...base,
+      search: {
+        provider: 'bocha' as const,
+        providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: 'b' } },
+      },
+    }
+    expect(searchOptionsFromSettings(bocha)).toEqual({
+      useGsk: false,
+      bochaKey: 'b',
+      prefer: 'bocha',
+    })
     // no key → genspark chain
     const empty = {
       ...base,
       search: {
         provider: 'serper' as const,
-        providers: { serper: { apiKey: '' }, tavily: { apiKey: '' } },
+        providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
       },
     }
     expect(searchOptionsFromSettings(empty)).toEqual({ useGsk: true })
@@ -277,5 +394,17 @@ describe('search-tools', () => {
     }))
     expect(await testSearchProvider('serper', 'right')).toEqual({ ok: true })
     expect(await testSearchProvider('tavily', '')).toEqual({ ok: false, error: 'API key is empty' })
+    mockFetch(() => ({
+      ok: true,
+      json: { code: 200, data: { webPages: { value: [{ name: 'A', url: 'https://a.com' }] } } },
+    }))
+    expect(await testSearchProvider('bocha', 'right')).toEqual({ ok: true })
+    mockFetch((url) => {
+      if (url.includes('bocha')) return { ok: false }
+      return { ok: true, text: '<a class="result__a" href="/l/?uddg=https%3A%2F%2Fx.com">X</a>' }
+    })
+    const badBocha = await testSearchProvider('bocha', 'wrong')
+    expect(badBocha.ok).toBe(false)
+    expect(badBocha.error).toMatch(/bocha/)
   })
 })

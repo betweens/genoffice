@@ -48,7 +48,7 @@ describe('genoffice capabilities', () => {
     const settings = settingsFile(dir, {
       search: {
         provider: 'serper',
-        providers: { serper: { apiKey: 'k' }, tavily: { apiKey: '' } },
+        providers: { serper: { apiKey: 'k' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
       },
       media: {
         imageProvider: 'openai',
@@ -77,7 +77,7 @@ describe('genoffice capabilities', () => {
     const settings = settingsFile(dir, {
       search: {
         provider: 'tavily',
-        providers: { serper: { apiKey: '' }, tavily: { apiKey: 't' } },
+        providers: { serper: { apiKey: '' }, tavily: { apiKey: 't' }, bocha: { apiKey: '' } },
       },
     })
     const r = await run(['capabilities', '--json'], {
@@ -85,6 +85,22 @@ describe('genoffice capabilities', () => {
     })
     const d = r.json().detail
     expect(d.search).toEqual({ available: true, via: 'tavily' })
+    expect(d.image_search.available).toBe(false)
+  })
+
+  it('Bocha gives web search but no image search', async () => {
+    const dir = tempDir()
+    const settings = settingsFile(dir, {
+      search: {
+        provider: 'bocha',
+        providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: 'b' } },
+      },
+    })
+    const r = await run(['capabilities', '--json'], {
+      env: { ...process.env, GENOFFICE_AI_SETTINGS: settings },
+    })
+    const d = r.json().detail
+    expect(d.search).toEqual({ available: true, via: 'bocha' })
     expect(d.image_search.available).toBe(false)
   })
 })

@@ -882,9 +882,11 @@ function AiMediaPane({ t }: { t: TFunc }) {
         <div className="set-field-desc set-ai-note">
           {search.provider === 'genspark'
             ? t('setAiSearchGensparkHint')
-            : searchMeta?.imageSearch
-              ? t('setAiSearchSerperHint')
-              : t('setAiSearchTavilyHint')}
+            : search.provider === 'bocha'
+              ? t('setAiSearchBochaHint')
+              : searchMeta?.imageSearch
+                ? t('setAiSearchSerperHint')
+                : t('setAiSearchTavilyHint')}
         </div>
         {search.provider !== 'genspark' &&
           keyRow('set-ai-search-key', searchKey, searchMeta?.keyPlaceholder ?? 'API Key', (v) =>

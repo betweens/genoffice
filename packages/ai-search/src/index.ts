@@ -1,8 +1,9 @@
 /**
  * Search utilities (main process) — gsk (Genspark CLI) first, then Serper Google API,
- * then Tavily, with DuckDuckGo as the keyless last resort. Runs in the main process
- * (Node fetch / child process) to avoid renderer CORS; the Serper key reuses SERPER_API_KEY,
- * the Tavily key reuses TAVILY_API_KEY.
+ * then Tavily, then Bocha, with DuckDuckGo as the keyless last resort. Runs in the
+ * main process (Node fetch / child process) to avoid renderer CORS; the Serper key
+ * reuses SERPER_API_KEY, the Tavily key reuses TAVILY_API_KEY, the Bocha key reuses
+ * BOCHA_API_KEY.
  * For gsk auth see ./gsk.ts (`gsk login` or GSK_API_KEY).
  */
 
@@ -23,19 +24,22 @@ export * from './search-tools'
 
 const SERPER_KEY = () => process.env.SERPER_API_KEY ?? ''
 const TAVILY_KEY = () => process.env.TAVILY_API_KEY ?? ''
+const BOCHA_KEY = () => process.env.BOCHA_API_KEY ?? ''
 
 /**
  * Backend selection for one search. Keys default to the SERPER_API_KEY /
- * TAVILY_API_KEY env vars; settings-driven callers (search-tools.ts) pass the
- * user's key and turn gsk off so the chosen backend runs first.
+ * TAVILY_API_KEY / BOCHA_API_KEY env vars; settings-driven callers
+ * (search-tools.ts) pass the user's key and turn gsk off so the chosen
+ * backend runs first.
  */
 export interface SearchOptions {
   /** false = skip the Genspark backend (cloud tools off, or a BYOK search provider is active) */
   useGsk?: boolean
   serperKey?: string
   tavilyKey?: string
+  bochaKey?: string
   /** which keyed backend to try first (default serper) */
-  prefer?: 'serper' | 'tavily'
+  prefer?: 'serper' | 'tavily' | 'bocha'
 }
 
 function normalizeOptions(opts: boolean | SearchOptions | undefined): Required<SearchOptions> {
@@ -44,6 +48,7 @@ function normalizeOptions(opts: boolean | SearchOptions | undefined): Required<S
     useGsk: o.useGsk ?? true,
     serperKey: o.serperKey ?? SERPER_KEY(),
     tavilyKey: o.tavilyKey ?? TAVILY_KEY(),
+    bochaKey: o.bochaKey ?? BOCHA_KEY(),
     prefer: o.prefer ?? 'serper',
   }
 }
@@ -131,6 +136,49 @@ async function tavilyWebSearch(
   }
 }
 
+/** Bocha web search; null when the key is empty, the call fails, or nothing comes back */
+async function bochaWebSearch(
+  key: string,
+  query: string,
+  maxResults: number,
+): Promise<WebSearchResponse | null> {
+  if (!key) return null
+  try {
+    const resp = await fetchWithTimeout('https://api.bocha.cn/v1/web-search', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        count: Math.min(50, Math.max(1, maxResults)),
+        summary: true,
+        freshness: 'noLimit',
+      }),
+    })
+    if (!resp.ok) return null
+    const data = asRecord(await resp.json())
+    if (data.code !== undefined && Number(data.code) !== 200) return null
+    const nested = asRecord(asRecord(data.data).webPages).value
+    const top = asRecord(data.webPages).value
+    const raw: unknown[] = Array.isArray(nested) ? nested : Array.isArray(top) ? top : []
+    const results: WebSearchResult[] = []
+    for (const item of raw) {
+      const o = asRecord(item)
+      const url = String(o.url ?? '').trim()
+      if (!url) continue
+      results.push({
+        title: String(o.name ?? ''),
+        url,
+        snippet: String(o.summary || o.snippet || ''),
+      })
+      if (results.length >= maxResults) break
+    }
+    if (!results.length) return null
+    return { results, method: 'bocha' }
+  } catch {
+    return null
+  }
+}
+
 // ── Web search ──────────────────────────────────────────────────────
 
 export async function webSearch(
@@ -146,19 +194,27 @@ export async function webSearch(
       const r = await gskWebSearch(query, maxResults)
       if (r.results.length) return { ...r, method: 'gsk' }
     } catch {
-      /* fall back to Serper/Tavily/DuckDuckGo */
+      /* fall back to Serper/Tavily/Bocha/DuckDuckGo */
     }
   }
   const keyed =
-    o.prefer === 'tavily'
+    o.prefer === 'bocha'
       ? [
-          () => tavilyWebSearch(o.tavilyKey, query, maxResults),
-          () => serperWebSearch(o.serperKey, query, maxResults),
-        ]
-      : [
+          () => bochaWebSearch(o.bochaKey, query, maxResults),
           () => serperWebSearch(o.serperKey, query, maxResults),
           () => tavilyWebSearch(o.tavilyKey, query, maxResults),
         ]
+      : o.prefer === 'tavily'
+        ? [
+            () => tavilyWebSearch(o.tavilyKey, query, maxResults),
+            () => serperWebSearch(o.serperKey, query, maxResults),
+            () => bochaWebSearch(o.bochaKey, query, maxResults),
+          ]
+        : [
+            () => serperWebSearch(o.serperKey, query, maxResults),
+            () => tavilyWebSearch(o.tavilyKey, query, maxResults),
+            () => bochaWebSearch(o.bochaKey, query, maxResults),
+          ]
   for (const attempt of keyed) {
     const r = await attempt()
     if (r) return r
