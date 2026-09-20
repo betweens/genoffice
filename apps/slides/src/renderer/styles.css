@@ -5619,7 +5619,7 @@ body.vib .slide-list {
 }
 
 /* the brand mark uses currentColor and keeps the button's ink, not the blue */
-.stage-ai-btn svg.genspark-mark {
+.stage-ai-btn .genspark-mark {
   color: var(--slides-stagebar-ink);
 }
 
@@ -8981,4 +8981,13 @@ body.show-curtain::after {
   background: var(--bullet-img) center / contain no-repeat;
   user-select: none;
   pointer-events: none;
+}
+
+
+/* AI Office brand mark (img replaces former sparkle SVG) */
+img.genspark-mark {
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
