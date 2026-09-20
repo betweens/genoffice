@@ -2126,7 +2126,8 @@ export function IconAiImage(props: IconProps) {
   )
 }
 
-/** AI Office brand mark (app icon). Kept export name for call-site compatibility. */
+/** AI Office product logo for ribbon / AI panel / stage chrome.
+ *  Kept export name for call-site compatibility. */
 export function GensparkMark({ size = 30 }: { size?: number }) {
   return (
     <img
@@ -2140,6 +2141,7 @@ export function GensparkMark({ size = 30 }: { size?: number }) {
     />
   )
 }
+
 
 export function IconRotateRight(props: IconProps) {
   return (

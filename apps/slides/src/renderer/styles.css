@@ -5578,9 +5578,9 @@ body.vib .slide-list {
 .stage-ai-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 8px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -5618,10 +5618,6 @@ body.vib .slide-list {
   color: var(--color-brand-secondary);
 }
 
-/* the brand mark uses currentColor and keeps the button's ink, not the blue */
-.stage-ai-btn .genspark-mark {
-  color: var(--slides-stagebar-ink);
-}
 
 /* Notes pane (bottom, PowerPoint style) */
 .notes-pane {
@@ -8984,10 +8980,25 @@ body.show-curtain::after {
 }
 
 
-/* AI Office brand mark (img replaces former sparkle SVG) */
+/* AI Office product logo (PNG) in chrome */
 img.genspark-mark {
   display: block;
-  border-radius: 6px;
-  object-fit: cover;
   flex-shrink: 0;
+  border-radius: 5px;
+  object-fit: contain;
+  /* prefer sharper downscale for the brand plate */
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.ai-panel-title .genspark-mark {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.5px;
+}
+
+
+.stage-ai-btn .genspark-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
 }

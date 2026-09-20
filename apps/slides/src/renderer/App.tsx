@@ -3625,7 +3625,7 @@ export function App() {
                               data-tip={t('aiOpenAssistant')}
                               onClick={toggleAi}
                             >
-                              <GensparkMark size={14} />
+                              <GensparkMark size={18} />
                               <span>AI Office</span>
                             </button>
                             {/* Same one-click presets as the Home tab; hidden instead of
