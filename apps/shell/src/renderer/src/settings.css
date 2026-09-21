@@ -389,9 +389,14 @@
   color: var(--text-primary);
 }
 
-.set-dd .gs-dd-btn:hover,
-.set-dd .gs-dd-btn:focus-visible {
+.set-dd .gs-dd-btn:hover:not(:disabled),
+.set-dd .gs-dd-btn:focus-visible:not(:disabled) {
   background: var(--bg-hover);
+}
+
+.set-dd .gs-dd-btn:disabled {
+  color: var(--text-secondary);
+  cursor: default;
 }
 
 .set-dd .gs-dd-pop {
@@ -507,6 +512,17 @@
   color: var(--text-secondary);
   background: var(--hover);
   cursor: default;
+}
+
+/* Locked chat provider: looks like a read-only field, never a dropdown. */
+.set-provider-static {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  background: var(--hover);
+  cursor: default;
+  user-select: text;
 }
 
 .set-input::placeholder {

@@ -55,6 +55,9 @@ export function Dropdown<K extends string>({
   // must close this one even though that trigger stops mousedown propagation
   useDismissablePopover(open, () => setOpen(false), { inside: () => [wrapRef.current] })
   useEffect(() => {
+    if (disabled) setOpen(false)
+  }, [disabled])
+  useEffect(() => {
     if (!open) return
     // optional chaining on the call: jsdom elements have no scrollIntoView
     popRef.current?.querySelectorAll('.gs-dd-item')[active]?.scrollIntoView?.({ block: 'nearest' })
@@ -63,6 +66,7 @@ export function Dropdown<K extends string>({
   // must read as itself, not masquerade as the first option
   const current = options.find((o) => o.value === value)
   const openList = () => {
+    if (disabled) return
     const i = options.findIndex((o) => o.value === value)
     setActive(i < 0 ? 0 : i)
     setOpen(true)
@@ -73,6 +77,7 @@ export function Dropdown<K extends string>({
     onPick(o.value)
   }
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return
     if (!open) {
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault()
@@ -102,12 +107,16 @@ export function Dropdown<K extends string>({
         disabled={disabled}
         data-value={value}
         data-tip={tip}
-        aria-haspopup="listbox"
-        aria-expanded={open}
+        aria-haspopup={disabled ? undefined : 'listbox'}
+        aria-expanded={disabled ? undefined : open}
         aria-label={ariaLabel ?? current?.label ?? value}
         aria-required={ariaRequired}
         aria-invalid={ariaInvalid}
-        onClick={() => (open ? setOpen(false) : openList())}
+        onClick={() => {
+          if (disabled) return
+          if (open) setOpen(false)
+          else openList()
+        }}
         onKeyDown={onKeyDown}
         onBlur={(e) => {
           // native selects close on focus loss (Tab); staying inside the wrapper
@@ -116,19 +125,21 @@ export function Dropdown<K extends string>({
         }}
       >
         <span className="gs-dd-value">{current ? (current.render ?? current.label) : value}</span>
-        <span className="gs-dd-caret" aria-hidden="true">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M5.5 9.25 12 15.75l6.5-6.5"
-              stroke="currentColor"
-              strokeWidth="2.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+        {!disabled && (
+          <span className="gs-dd-caret" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5.5 9.25 12 15.75l6.5-6.5"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        )}
       </button>
-      {open && (
+      {open && !disabled && (
         <div ref={popRef} className="gs-dd-pop" role="listbox">
           {options.map((o, i) => (
             <button

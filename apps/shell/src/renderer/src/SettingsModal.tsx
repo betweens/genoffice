@@ -322,7 +322,6 @@ function AiModelPane({ t }: { t: TFunc }) {
   }
   const isGenspark = provider === 'genspark'
   const isCodex = provider === 'codex'
-  const providerLocked = ENTERPRISE_AI_UI_POLICY.lockProvider
   const keyReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyKey
   const baseUrlReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyBaseUrl
 
@@ -345,16 +344,6 @@ function AiModelPane({ t }: { t: TFunc }) {
     const next = clampMaxOutputTokens(Number.parseInt(maxTokensDraft, 10))
     if (next === (settings.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS)) return
     setSettings({ ...settings, maxOutputTokens: next })
-    touch()
-  }
-  const selectProvider = (id: AiSettings['provider']) => {
-    if (providerLocked && id !== ENTERPRISE_LOCKED_PROVIDER) return
-    // cloud tools cannot be off with genspark (chat runs through gsk anyway)
-    setSettings({
-      ...settings,
-      provider: id,
-      ...(id === 'genspark' ? { gskToolsEnabled: true } : {}),
-    })
     touch()
   }
   const save = () => {
@@ -390,26 +379,21 @@ function AiModelPane({ t }: { t: TFunc }) {
       <h3 className="set-pane-title">{t('setSecAiModel')}</h3>
       <div className="set-field">
         <div className="set-field-text">
-          <label className="set-field-label">{t('setAiProvider')}</label>
+          <label className="set-field-label" htmlFor="set-ai-provider">
+            {t('setAiProvider')}
+          </label>
         </div>
-        <Dropdown
-          className="set-dd"
-          value={provider}
-          ariaLabel={t('setAiProvider')}
-          disabled={providerLocked}
-          options={catalog.map((c) => ({
-            value: c.id,
-            label: c.label,
-            disabled: c.id !== ENTERPRISE_LOCKED_PROVIDER,
-            render: (
-              <>
-                <ProviderLogo id={c.id} />
-                {c.label}
-              </>
-            ),
-          }))}
-          onPick={(v) => selectProvider(v as AiSettings['provider'])}
-        />
+        {/* Enterprise lock: not a Dropdown — no list, no caret, not selectable. */}
+        <div
+          id="set-ai-provider"
+          className="set-input set-provider-static"
+          role="text"
+          aria-readonly="true"
+          aria-label={t('setAiProvider')}
+        >
+          <ProviderLogo id={ENTERPRISE_LOCKED_PROVIDER} />
+          <span>{meta?.label ?? 'Custom'}</span>
+        </div>
       </div>
       <div className="set-field-desc set-ai-note">
         {isGenspark ? t('setAiGensparkHint') : isCodex ? t('setAiCodexHint') : t('setAiByokNote')}
