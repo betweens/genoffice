@@ -72,7 +72,7 @@ function bakedMediaSettings(): AiSettings {
           baseUrl: 'https://llm.example.internal/v1',
           imageModel: 'flux-schnell',
           analysisModel: 'qwen3-vl',
-          videoModel: '',
+          videoModel: 'qwen3-vl',
         },
       } as never,
     },
@@ -138,6 +138,12 @@ describe('Settings AI Media pane', () => {
     expect(analysis?.value).toBe('qwen3-vl')
     expect(image?.readOnly).toBe(true)
     expect(analysis?.readOnly).toBe(true)
-    expect(host.querySelector<HTMLInputElement>('#set-ai-video-model')?.value).toBe('qwen3-vl')
+    const video = host.querySelector<HTMLInputElement>('#set-ai-video-model')
+    expect(video?.value).toBe('qwen3-vl')
+    expect(video?.readOnly).toBe(true)
+    const subtitles = Array.from(host.querySelectorAll('.set-pane-subtitle')).map(
+      (el) => el.textContent ?? '',
+    )
+    expect(subtitles).toEqual(['Web search', 'Image generation', 'Image analysis', 'Video analysis'])
   })
 })

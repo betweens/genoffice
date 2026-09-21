@@ -4,8 +4,10 @@ import {
   activeMediaConfig,
   activeMediaProvider,
   defaultAiMediaSettings,
+  getMediaProviderMeta,
   imageGenerationAvailable,
   mediaAnalysisAvailable,
+  providerHasCapability,
   resolveAiMediaSettings,
   videoAnalysisAvailable,
 } from '../src/media'
@@ -50,6 +52,9 @@ describe('media settings', () => {
     }
     expect(media.providers.custom.baseUrl).toBe('')
     expect(media.providers.openai.baseUrl).toBeUndefined()
+    expect(AI_MEDIA_PROVIDERS.find((p) => p.id === 'custom')?.videoAnalysis).toBe(false)
+    expect(getMediaProviderMeta('custom')?.videoAnalysis).toBe(true)
+    expect(providerHasCapability(getMediaProviderMeta('custom')!, 'video')).toBe(true)
   })
 
   it('is carried by defaultAiSettings and healed in from a pre-media settings file', () => {
@@ -451,6 +456,33 @@ describe('analyzeMediaWithProvider', () => {
       }),
     ).rejects.toThrow(/video and audio analysis needs/)
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends video as a video_url part for enterprise Custom (qwen3-vl on /chat/completions)', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ choices: [{ message: { content: 'a clip' } }] }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const text = await analyzeMediaWithProvider(
+      'custom',
+      {
+        apiKey: 'k',
+        baseUrl: 'http://localhost:1234/v1',
+        imageModel: '',
+        analysisModel: 'other-vl',
+        videoModel: 'qwen3-vl',
+      },
+      { media: [{ bytes: PNG, mime: 'video/mp4' }], requirements: 'summarize' },
+    )
+    expect(text).toBe('a clip')
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('http://localhost:1234/v1/chat/completions')
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe('qwen3-vl')
+    expect(body.messages[0].content[1]).toEqual({
+      type: 'video_url',
+      video_url: { url: `data:video/mp4;base64,${PNG_B64}` },
+    })
   })
 
   it('sends video as a video_url part for vendors that take it (Qwen via compatible-mode)', async () => {

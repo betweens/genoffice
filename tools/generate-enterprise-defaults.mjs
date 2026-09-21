@@ -19,7 +19,8 @@
  *   GENOFFICE_AI_MEDIA_BASE_URL / GENOFFICE_AI_MEDIA_API_KEY  (optional; runtime
  *     falls back to the chat URL/key)
  *   GENOFFICE_AI_IMAGE_MODEL / GENOFFICE_AI_ANALYSIS_MODEL / GENOFFICE_AI_VIDEO_MODEL
- *     (optional; prefills Custom media model ids when Settings has none)
+ *     (optional; prefills Custom media model ids when Settings has none.
+ *     VIDEO_MODEL falls back to ANALYSIS_MODEL at overlay time if unset)
  *   GENOFFICE_AI_SEARCH_API_KEY or BOCHA_API_KEY
  *
  * `apps/shell/electron-builder.env` is loaded by electron-builder only, after

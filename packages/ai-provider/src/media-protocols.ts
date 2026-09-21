@@ -676,7 +676,10 @@ export async function analyzeMediaWithProvider(
   const meta = metaOf(provider)
   requireBaseUrl(meta, config)
   if (!meta.analysisProtocol) throw new Error(`${meta.label} does not analyze media`)
-  const model = modelOf(meta, config, 'analysisModel')
+  const hasVideo = input.media.some((m) => !m.mime.startsWith('image/'))
+  const model = hasVideo
+    ? config.videoModel?.trim() || modelOf(meta, config, 'analysisModel')
+    : modelOf(meta, config, 'analysisModel')
   const guard = withTimeout(signal, ANALYZE_TIMEOUT_MS)
   return meta.analysisProtocol === 'gemini'
     ? analyzeMediaGemini(config, model, input, guard)

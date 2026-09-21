@@ -58,6 +58,7 @@ export {
   filterAiSearchProviderCatalog,
   isMaskedApiKey,
   maskApiKey,
+  withEnterpriseMediaCapabilities,
   persistEnterpriseAiSettings,
   normalizeEnterpriseModelId,
   readEnterpriseAiEnv,

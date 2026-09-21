@@ -32,6 +32,7 @@ export {
   filterAiSearchProviderCatalog,
   isMaskedApiKey,
   maskApiKey,
+  withEnterpriseMediaCapabilities,
 } from './enterprise-ui'
 export type { EnterpriseAiUiPolicy, EnvLike } from './enterprise-ui'
 
@@ -51,6 +52,7 @@ export type { EnterpriseAiUiPolicy, EnvLike } from './enterprise-ui'
  *   GENOFFICE_AI_IMAGE_MODEL      prefills Custom image model when stored is empty
  *   GENOFFICE_AI_ANALYSIS_MODEL   prefills Custom analysis model when stored is empty
  *   GENOFFICE_AI_VIDEO_MODEL      prefills Custom video model when stored is empty
+ *                                 (falls back to GENOFFICE_AI_ANALYSIS_MODEL)
  *   GENOFFICE_AI_SEARCH_API_KEY   Bocha key (falls back to BOCHA_API_KEY)
  *
  * Packaged apps do not inherit the packager's shell env on double-click.
@@ -157,7 +159,10 @@ export function readEnterpriseAiEnv(
     mediaBaseUrl: overlayField(runtime, defaults, GENOFFICE_AI_MEDIA_BASE_URL_ENV) || baseUrl,
     imageModel: overlayModelField(runtime, defaults, GENOFFICE_AI_IMAGE_MODEL_ENV),
     analysisModel: overlayModelField(runtime, defaults, GENOFFICE_AI_ANALYSIS_MODEL_ENV),
-    videoModel: overlayModelField(runtime, defaults, GENOFFICE_AI_VIDEO_MODEL_ENV),
+    // Same VL checkpoint as image analysis when the packager omits VIDEO_MODEL.
+    videoModel:
+      overlayModelField(runtime, defaults, GENOFFICE_AI_VIDEO_MODEL_ENV) ||
+      overlayModelField(runtime, defaults, GENOFFICE_AI_ANALYSIS_MODEL_ENV),
     searchApiKey: firstNonEmpty(
       runtime[GENOFFICE_AI_SEARCH_API_KEY_ENV],
       runtime[BOCHA_API_KEY_ENV],

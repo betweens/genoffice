@@ -1,4 +1,8 @@
-import { ENTERPRISE_LOCKED_MEDIA_PROVIDER, type EnvLike } from './enterprise-ui'
+import {
+  ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+  withEnterpriseMediaCapabilities,
+  type EnvLike,
+} from './enterprise-ui'
 import type {
   AiMediaProviderConfig,
   AiMediaProviderId,
@@ -154,6 +158,8 @@ export const AI_MEDIA_PROVIDERS: AiMediaProviderMeta[] = [
     analysisProtocol: 'openai-chat',
     analysisModels: [],
     defaultAnalysisModel: '',
+    // Upstream Custom cannot analyze video; withEnterpriseMediaCapabilities
+    // enables it for locked Custom so qwen3-vl can take video_url parts.
     videoAnalysis: false,
   },
 ]
@@ -161,7 +167,8 @@ export const AI_MEDIA_PROVIDERS: AiMediaProviderMeta[] = [
 export type MediaCapability = 'image' | 'analysis' | 'video'
 
 export function getMediaProviderMeta(id: AiMediaProviderId): AiMediaProviderMeta | undefined {
-  return AI_MEDIA_PROVIDERS.find((m) => m.id === id)
+  const meta = AI_MEDIA_PROVIDERS.find((m) => m.id === id)
+  return meta ? withEnterpriseMediaCapabilities(meta) : undefined
 }
 
 export function providerHasCapability(

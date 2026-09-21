@@ -24,6 +24,7 @@ export {
   filterAiSearchProviderCatalog,
   isMaskedApiKey,
   maskApiKey,
+  withEnterpriseMediaCapabilities,
 } from './enterprise-ui'
 export { getProviderAdapter, modelLacksVision } from './registry'
 export { AI_MEDIA_PROVIDERS, imageGenerationAvailable, mediaAnalysisAvailable } from './media'

@@ -63,10 +63,22 @@ export function filterAiProviderCatalog<T extends Pick<AiProviderMeta, 'id'>>(
   return catalog.filter((entry) => entry.id === ENTERPRISE_LOCKED_PROVIDER)
 }
 
+/**
+ * Upstream Custom is `videoAnalysis: false` (OpenAI-compatible image + chat
+ * only). This fork's gateway serves qwen3-vl on that same chat protocol, so
+ * locked Custom must advertise video analysis to Settings and media tools.
+ */
+export function withEnterpriseMediaCapabilities<T extends { id: string }>(meta: T): T {
+  if (meta.id !== ENTERPRISE_LOCKED_MEDIA_PROVIDER) return meta
+  return { ...meta, videoAnalysis: true } as T
+}
+
 export function filterAiMediaProviderCatalog<T extends Pick<AiMediaProviderMeta, 'id'>>(
   catalog: readonly T[],
 ): T[] {
-  return catalog.filter((entry) => entry.id === ENTERPRISE_LOCKED_MEDIA_PROVIDER)
+  return catalog
+    .filter((entry) => entry.id === ENTERPRISE_LOCKED_MEDIA_PROVIDER)
+    .map((entry) => withEnterpriseMediaCapabilities(entry))
 }
 
 export function filterAiSearchProviderCatalog<T extends Pick<AiSearchProviderMeta, 'id'>>(

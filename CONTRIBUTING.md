@@ -162,7 +162,7 @@ electron-vite bundles into the app.
 | `GENOFFICE_AI_MEDIA_BASE_URL` / `GENOFFICE_AI_MEDIA_API_KEY` | Optional media custom URL/key                             |
 | `GENOFFICE_AI_IMAGE_MODEL`                                   | Prefills Custom image-generation model when empty         |
 | `GENOFFICE_AI_ANALYSIS_MODEL`                                | Prefills Custom image-analysis model when empty           |
-| `GENOFFICE_AI_VIDEO_MODEL`                                   | Optional; prefills Custom video-analysis model when empty |
+| `GENOFFICE_AI_VIDEO_MODEL`                                   | Prefills Custom video-analysis model when empty (defaults to `GENOFFICE_AI_ANALYSIS_MODEL`) |
 | `GENOFFICE_AI_SEARCH_API_KEY` or `BOCHA_API_KEY`             | Bocha search key                                          |
 
 Runtime still prefers live `process.env` over the baked copy, then empty.

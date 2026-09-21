@@ -64,7 +64,7 @@ describe('generate-enterprise-defaults', () => {
       GENOFFICE_AI_MODEL: 'packager-chat',
       GENOFFICE_AI_IMAGE_MODEL: ' flux-schnell ',
       GENOFFICE_AI_ANALYSIS_MODEL: ` qwen3\u2011vl `,
-      GENOFFICE_AI_VIDEO_MODEL: '',
+      GENOFFICE_AI_VIDEO_MODEL: ` qwen3\u2011vl `,
       GENOFFICE_AI_SEARCH_API_KEY: 'bocha-packager',
     })
     expect(source).toContain('GENOFFICE_AI_BASE_URL: "https://llm.packager.internal/v1"')
@@ -72,11 +72,12 @@ describe('generate-enterprise-defaults', () => {
     expect(source).toContain('GENOFFICE_AI_MODEL: "packager-chat"')
     expect(source).toContain('GENOFFICE_AI_IMAGE_MODEL: "flux-schnell"')
     expect(source).toContain('GENOFFICE_AI_ANALYSIS_MODEL: "qwen3-vl"')
-    expect(source).toContain('GENOFFICE_AI_VIDEO_MODEL: ""')
+    expect(source).toContain('GENOFFICE_AI_VIDEO_MODEL: "qwen3-vl"')
     expect(source).toContain('GENOFFICE_AI_SEARCH_API_KEY: "bocha-packager"')
     expect(stdout).toContain('GENOFFICE_AI_API_KEY')
     expect(stdout).toContain('GENOFFICE_AI_IMAGE_MODEL')
     expect(stdout).toContain('GENOFFICE_AI_ANALYSIS_MODEL')
+    expect(stdout).toContain('GENOFFICE_AI_VIDEO_MODEL')
     expect(stdout).toContain('GENOFFICE_AI_SEARCH_API_KEY')
     expect(stdout).not.toContain('sk-packager')
     expect(stdout).not.toContain('bocha-packager')

@@ -464,7 +464,7 @@ npm run dist:linux   # package Linux AppImage + deb + rpm
 Packagers who need zero-config AI in the installer must export
 `GENOFFICE_AI_BASE_URL` / `GENOFFICE_AI_API_KEY` / `GENOFFICE_AI_MODEL`,
 optional `GENOFFICE_AI_IMAGE_MODEL` / `GENOFFICE_AI_ANALYSIS_MODEL` /
-`GENOFFICE_AI_VIDEO_MODEL`, and `GENOFFICE_AI_SEARCH_API_KEY` (or `BOCHA_API_KEY`)
+`GENOFFICE_AI_VIDEO_MODEL` (video defaults to the analysis model when unset), and `GENOFFICE_AI_SEARCH_API_KEY` (or `BOCHA_API_KEY`)
 **before** the dist command — see [CONTRIBUTING.md](CONTRIBUTING.md#enterprise-ai-credentials-packaged-builds).
 `npm run dev` still uses the shell environment and does not bake secrets.
 
