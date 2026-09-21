@@ -25,7 +25,7 @@ import type {
   RenameResult,
   UiLanguage,
 } from '../shared/home-api'
-import { HOME_CHANNELS } from '../shared/home-api'
+import { HOME_CHANNELS, parseSystemInfo } from '../shared/home-api'
 import { INTEGRATIONS_CHANNELS } from '../shared/integrations-api'
 import type {
   IntegrationsApi,
@@ -205,6 +205,10 @@ const homeApi: HomeApi = {
   async getAppVersion() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getAppVersion)
     return typeof result === 'string' ? result : ''
+  },
+  async getSystemInfo() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getSystemInfo)
+    return parseSystemInfo(result)
   },
   async onboardingSeen() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.onboardingSeen)

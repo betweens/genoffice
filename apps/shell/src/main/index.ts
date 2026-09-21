@@ -70,6 +70,7 @@ import { startControlServer, type ControlServer } from './control-server'
 import { controlHandler } from './control-handlers'
 import { installCliLinkBestEffort } from './cli-link'
 import { registerIntegrationsIpc } from './integrations-ipc'
+import { collectSystemInfo } from './system-info'
 import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
@@ -3250,6 +3251,16 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.getAppVersion, (): string => app.getVersion())
+
+  ipcMain.handle(HOME_CHANNELS.getSystemInfo, () =>
+    collectSystemInfo({
+      appVersion: app.getVersion(),
+      locale: app.getLocale(),
+      osVersion: process.getSystemVersion(),
+      electronVersion: process.versions.electron ?? '',
+      chromeVersion: process.versions.chrome ?? '',
+    }),
+  )
 
   ipcMain.handle(HOME_CHANNELS.recents, (_event, query: unknown): RecentPage =>
     pageRecentPaths(readRecentFiles(), query, new Set(readStarredFiles())),

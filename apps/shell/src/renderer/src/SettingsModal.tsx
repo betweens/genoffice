@@ -30,9 +30,10 @@ import type {
 } from '@genoffice/ai-provider'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
-import type { AccountStatus, AiCatalogEntry, UiTheme } from '../../shared/home-api'
+import type { AccountStatus, AiCatalogEntry, SystemInfo, UiTheme } from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
 import { IntegrationsPane, skillUpdateDue } from './IntegrationsPane'
+import { formatMemory, formatOsDisplay } from './system-info-format'
 import './settings.css'
 
 // ── Settings modal (opened from the account menu) ─────────
@@ -143,7 +144,7 @@ function CustomFontSizeInput({
   )
 }
 
-type SectionId = 'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'about'
+type SectionId = 'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'system' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'account', labelKey: 'setSecAccount' },
@@ -151,6 +152,7 @@ const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'aiMedia', labelKey: 'setSecAiMedia' },
   { id: 'general', labelKey: 'setSecGeneral' },
   { id: 'integrations', labelKey: 'setSecIntegrations' },
+  { id: 'system', labelKey: 'setSecSystem' },
   { id: 'about', labelKey: 'setSecAbout' },
 ]
 
@@ -228,6 +230,22 @@ function SectionIcon({ id }: { id: SectionId }) {
       </svg>
     )
   }
+  if (id === 'system') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect
+          x="2"
+          y="2.5"
+          width="12"
+          height="8.5"
+          rx="1.4"
+          stroke="currentColor"
+          strokeWidth="1.3"
+        />
+        <path d="M5.5 14h5M8 11v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    )
+  }
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.3" />
@@ -259,6 +277,97 @@ function Field({
       </div>
       {action}
     </div>
+  )
+}
+
+function dash(value: string | number | undefined | null): string {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? String(value) : '—'
+  return value && value.trim() ? value : '—'
+}
+
+function systemInfoRows(
+  info: SystemInfo,
+  t: TFunc,
+  dateLocale: string,
+): { key: string; label: string; value: string }[] {
+  const rows: { key: string; label: string; value: string }[] = [
+    {
+      key: 'computerName',
+      label: t('setSysComputerName'),
+      value: dash(info.computerName || info.hostname),
+    },
+  ]
+  if (info.hostname && info.hostname !== info.computerName) {
+    rows.push({ key: 'hostname', label: t('setSysHostname'), value: info.hostname })
+  }
+  const cpu =
+    info.cpuModel && info.cpuCores > 0
+      ? `${info.cpuModel} · ${t('setSysCores', { n: info.cpuCores })}`
+      : info.cpuModel || (info.cpuCores > 0 ? t('setSysCores', { n: info.cpuCores }) : '')
+  rows.push(
+    { key: 'os', label: t('setSysOs'), value: formatOsDisplay(info) },
+    { key: 'arch', label: t('setSysArch'), value: dash(info.arch) },
+    { key: 'user', label: t('setSysUser'), value: dash(info.username) },
+    { key: 'home', label: t('setSysHome'), value: dash(info.homedir) },
+    { key: 'app', label: t('setSysAppVersion'), value: dash(info.appVersion) },
+    { key: 'electron', label: t('setSysElectron'), value: dash(info.electronVersion) },
+    { key: 'chrome', label: t('setSysChrome'), value: dash(info.chromeVersion) },
+    { key: 'locale', label: t('setSysLocale'), value: dash(info.locale) },
+    { key: 'cpu', label: t('setSysCpu'), value: dash(cpu) },
+    {
+      key: 'memory',
+      label: t('setSysMemory'),
+      value: formatMemory(info.totalMemoryBytes, dateLocale),
+    },
+  )
+  return rows
+}
+
+function SystemInfoPane({ t, dateLocale }: { t: TFunc; dateLocale: string }) {
+  const [info, setInfo] = useState<SystemInfo | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    void window.aiOffice.getSystemInfo?.().then((next) => {
+      if (alive && next) setInfo(next)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const rows = info
+    ? systemInfoRows(info, t, dateLocale)
+    : [
+        { key: 'computerName', label: t('setSysComputerName'), value: '—' },
+        { key: 'os', label: t('setSysOs'), value: '—' },
+        { key: 'user', label: t('setSysUser'), value: '—' },
+      ]
+
+  const copyAll = () => {
+    const text = rows.map((row) => `${row.label}: ${row.value}`).join('\n')
+    void navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 1600)
+      },
+      () => {},
+    )
+  }
+
+  return (
+    <>
+      <h3 className="set-pane-title">{t('setSecSystem')}</h3>
+      {rows.map((row) => (
+        <Field key={row.key} label={row.label} value={row.value} valueTitle={row.value} />
+      ))}
+      <div className="set-pane-footer">
+        <button className="set-btn" disabled={!info} onClick={copyAll}>
+          {copied ? t('setMcpCopied') : t('setSysCopyAll')}
+        </button>
+      </div>
+    </>
   )
 }
 
@@ -988,7 +1097,7 @@ export function SettingsModal({
   skillUpdateDue: updateDue = false,
   onSkillUpdateDue,
 }: SettingsModalProps) {
-  const { lang, setLang, t } = useI18n()
+  const { lang, setLang, t, dateLocale } = useI18n()
   const [section, setSection] = useState<SectionId>('account')
   const [theme, setTheme] = useState<UiTheme>('system')
   const [saveDir, setSaveDir] = useState('')
@@ -1299,6 +1408,7 @@ export function SettingsModal({
             {section === 'integrations' && (
               <IntegrationsPane t={t} onStatus={(st) => onSkillUpdateDue?.(skillUpdateDue(st))} />
             )}
+            {section === 'system' && <SystemInfoPane t={t} dateLocale={dateLocale} />}
             {section === 'about' && (
               <>
                 <h3 className="set-pane-title">{t('setSecAbout')}</h3>

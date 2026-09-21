@@ -38,6 +38,77 @@ export type UiLanguage =
 /** UI theme preference */
 export type UiTheme = 'light' | 'dark' | 'system'
 
+/** read-only local machine snapshot shown in Settings (no serials / MACs) */
+export interface SystemInfo {
+  /** user-facing computer name when the OS exposes one; otherwise hostname */
+  computerName: string
+  hostname: string
+  /** Node/Electron platform id: darwin / win32 / linux / … */
+  platform: string
+  /** os.type(): Darwin, Windows_NT, Linux */
+  osType: string
+  /** kernel / build string from os.release() */
+  osRelease: string
+  /** Electron process.getSystemVersion() (macOS marketing version, Windows build, …) */
+  osVersion: string
+  arch: string
+  username: string
+  homedir: string
+  appVersion: string
+  electronVersion: string
+  chromeVersion: string
+  /** OS / Chromium locale from app.getLocale() */
+  locale: string
+  cpuModel: string
+  cpuCores: number
+  totalMemoryBytes: number
+}
+
+export const EMPTY_SYSTEM_INFO: SystemInfo = {
+  computerName: '',
+  hostname: '',
+  platform: '',
+  osType: '',
+  osRelease: '',
+  osVersion: '',
+  arch: '',
+  username: '',
+  homedir: '',
+  appVersion: '',
+  electronVersion: '',
+  chromeVersion: '',
+  locale: '',
+  cpuModel: '',
+  cpuCores: 0,
+  totalMemoryBytes: 0,
+}
+
+export function parseSystemInfo(value: unknown): SystemInfo {
+  if (!value || typeof value !== 'object') return EMPTY_SYSTEM_INFO
+  const v = value as Record<string, unknown>
+  const str = (key: keyof SystemInfo): string => (typeof v[key] === 'string' ? v[key] : '')
+  const num = (key: keyof SystemInfo): number =>
+    typeof v[key] === 'number' && Number.isFinite(v[key]) ? v[key] : 0
+  return {
+    computerName: str('computerName'),
+    hostname: str('hostname'),
+    platform: str('platform'),
+    osType: str('osType'),
+    osRelease: str('osRelease'),
+    osVersion: str('osVersion'),
+    arch: str('arch'),
+    username: str('username'),
+    homedir: str('homedir'),
+    appVersion: str('appVersion'),
+    electronVersion: str('electronVersion'),
+    chromeVersion: str('chromeVersion'),
+    locale: str('locale'),
+    cpuModel: str('cpuModel'),
+    cpuCores: num('cpuCores'),
+    totalMemoryBytes: num('totalMemoryBytes'),
+  }
+}
+
 /** shell-wide AutoSave default for every editor; updatedAt is 0 until first set */
 export interface AutoSaveDefault {
   on: boolean
@@ -167,6 +238,8 @@ export interface HomeApi {
   accountLogout(): Promise<void>
   /** app version (from package.json / electron app.getVersion) */
   getAppVersion(): Promise<string>
+  /** read-only local machine / OS / user summary for Settings → This computer */
+  getSystemInfo(): Promise<SystemInfo>
   /** whether the first-run onboarding has been completed or skipped (persisted in userData/app-settings.json) */
   onboardingSeen(): Promise<boolean>
   /** mark onboarding done; analytics remains enabled unless separately opted out */
@@ -411,6 +484,7 @@ export const HOME_CHANNELS = {
   accountLoginOpenUrl: 'home:account-login-open-url',
   accountLogout: 'home:account-logout',
   getAppVersion: 'home:get-app-version',
+  getSystemInfo: 'home:get-system-info',
   onboardingSeen: 'home:onboarding-seen',
   setOnboardingSeen: 'home:set-onboarding-seen',
   getTheme: 'home:get-theme',
