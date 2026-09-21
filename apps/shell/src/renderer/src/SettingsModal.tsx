@@ -91,14 +91,6 @@ const CHANNEL_OPTIONS = [
   { value: 'beta', labelKey: 'channelBeta' },
 ] as const satisfies readonly { value: 'stable' | 'beta'; labelKey: StringKey }[]
 
-/** GitHub-style abbreviated stargazer count (2591 → "2.6k") — the number is
- * social proof, not a metric; the cached/exact value would only look stale */
-function formatStars(n: number): string {
-  if (n < 1000) return String(n)
-  const k = n / 1000
-  return `${k >= 100 ? Math.round(k) : (Math.round(k * 10) / 10).toString().replace(/\.0$/, '')}k`
-}
-
 /** px stepper for the custom AI panel text size; in-range values apply live,
  * out-of-range or partial input is clamped on blur */
 function CustomFontSizeInput({
@@ -155,11 +147,13 @@ type SectionId =
   'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'system' | 'proxy' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
-  { id: 'account', labelKey: 'setSecAccount' },
+  // Account nav + pane hidden for now; re-add `{ id: 'account', labelKey: 'setSecAccount' }`
+  // at the top and restore the account pane below to bring it back.
   { id: 'aiModel', labelKey: 'setSecAiModel' },
   { id: 'aiMedia', labelKey: 'setSecAiMedia' },
   { id: 'general', labelKey: 'setSecGeneral' },
-  { id: 'integrations', labelKey: 'setSecIntegrations' },
+  // Integrations nav hidden for now; uncomment to restore (pane + icon kept below).
+  // { id: 'integrations', labelKey: 'setSecIntegrations' },
   { id: 'system', labelKey: 'setSecSystem' },
   { id: 'proxy', labelKey: 'setSecProxy' },
   { id: 'about', labelKey: 'setSecAbout' },
@@ -1307,6 +1301,7 @@ function AiStatusPill({ status }: { status: AiStatus | null }) {
 }
 
 export interface SettingsModalProps {
+  /** Retained while Account section is hidden; restore the account pane to use again. */
   status: AccountStatus | null
   loggingOut: boolean
   /** browser sign-in in progress (spinner shows on the account entry) */
@@ -1323,24 +1318,18 @@ export interface SettingsModalProps {
   /** an installed skill is older than the bundled one: dot on the Integrations entry */
   skillUpdateDue?: boolean
   onSkillUpdateDue?: (due: boolean) => void
+  /** Override the initially open section (used by tests while Integrations nav is hidden). */
+  initialSection?: SectionId
 }
 
 export function SettingsModal({
-  status,
-  loggingOut,
-  loginWaiting,
-  loginUrl,
-  urlCopied,
-  onOpenLoginUrl,
-  onCopyLoginUrl,
   onClose,
-  onLogin,
-  onLogout,
   skillUpdateDue: updateDue = false,
   onSkillUpdateDue,
+  initialSection = 'aiModel',
 }: SettingsModalProps) {
   const { lang, setLang, t, dateLocale } = useI18n()
-  const [section, setSection] = useState<SectionId>('account')
+  const [section, setSection] = useState<SectionId>(initialSection)
   const [theme, setTheme] = useState<UiTheme>('system')
   const [saveDir, setSaveDir] = useState('')
   const [analyticsOn, setAnalyticsOn] = useState(true)
@@ -1349,7 +1338,6 @@ export function SettingsModal({
   const [aiPrefs, setAiPrefs] = useState<AiPanelPrefs>(DEFAULT_AI_PANEL_PREFS)
   const [channel, setChannel] = useState<'stable' | 'beta'>('stable')
   const [appVersion, setAppVersion] = useState('')
-  const [githubStars, setGithubStars] = useState<number | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -1373,9 +1361,6 @@ export function SettingsModal({
     })
     void window.aiOffice.getAppVersion?.().then((v) => {
       if (alive && v) setAppVersion(v)
-    })
-    void window.aiOffice.githubStars?.().then((n) => {
-      if (alive && n !== null) setGithubStars(n)
     })
     return () => {
       alive = false
@@ -1407,9 +1392,6 @@ export function SettingsModal({
       if (dir) setSaveDir(dir)
     })
   }
-
-  const loggedIn = status?.loggedIn ?? false
-  const email = status?.email ?? ''
 
   return (
     <div
@@ -1450,54 +1432,6 @@ export function SettingsModal({
             ))}
           </nav>
           <div className="set-pane">
-            {section === 'account' && (
-              <>
-                <h3 className="set-pane-title">{t('setSecAccount')}</h3>
-                <Field label={t('setEmail')} value={loggedIn ? email : t('setNotLoggedIn')} />
-                {loggedIn && (
-                  <Field
-                    label={t('credits')}
-                    value={
-                      status?.creditBalance === undefined
-                        ? '—'
-                        : Math.floor(status.creditBalance).toLocaleString('en-US')
-                    }
-                    action={
-                      <button
-                        className="set-btn"
-                        data-tip={t('creditsTip')}
-                        onClick={() => void window.aiOffice.openCreditUsage?.()}
-                      >
-                        {t('setViewUsage')}
-                      </button>
-                    }
-                  />
-                )}
-                <div className="set-pane-footer">
-                  {loggedIn ? (
-                    <button className="set-btn danger" disabled={loggingOut} onClick={onLogout}>
-                      {loggingOut ? t('loggingOut') : t('logout')}
-                    </button>
-                  ) : (
-                    <>
-                      {loginWaiting && loginUrl && (
-                        <>
-                          <button className="set-btn" onClick={onOpenLoginUrl}>
-                            {t('loginOpenManually')}
-                          </button>
-                          <button className="set-btn" onClick={onCopyLoginUrl}>
-                            {urlCopied ? t('loginCopied') : t('loginCopyUrl')}
-                          </button>
-                        </>
-                      )}
-                      <button className="set-btn primary" onClick={onLogin}>
-                        {loginWaiting ? t('waitingShort') : t('loginGenspark')}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
             {section === 'aiModel' && <AiModelPane t={t} />}
             {section === 'aiMedia' && <AiMediaPane t={t} />}
             {section === 'general' && (
@@ -1675,22 +1609,6 @@ export function SettingsModal({
                     }}
                   />
                 </div>
-                <Field
-                  label={t('setGithub')}
-                  value={
-                    githubStars === null
-                      ? 'github.com/genspark-ai/genoffice'
-                      : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
-                  }
-                  action={
-                    <button
-                      className="set-btn"
-                      onClick={() => void window.aiOffice.openGitHubRepo?.()}
-                    >
-                      {t('starOnGitHub')}
-                    </button>
-                  }
-                />
               </>
             )}
           </div>

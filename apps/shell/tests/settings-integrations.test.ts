@@ -124,13 +124,13 @@ async function openIntegrations(
           onClose: vi.fn(),
           onLogin: vi.fn(),
           onLogout: vi.fn(),
+          initialSection: 'integrations',
           ...extra,
         }),
       ),
     )
     await Promise.resolve()
   })
-  await click(buttonWithText('Integrations'))
 }
 
 describe('Settings → Integrations', () => {
@@ -255,7 +255,8 @@ describe('Settings → Integrations', () => {
     expect(host.textContent).toContain('Saved to /Users/u/Downloads/genoffice-skill-2.1.0.zip')
   })
 
-  it('marks the Integrations entry while a detected assistant holds an older skill', async () => {
+  // Integrations nav is temporarily hidden; re-enable with the SECTIONS entry in SettingsModal.
+  it.skip('marks the Integrations entry while a detected assistant holds an older skill', async () => {
     const onDue = vi.fn()
     await openIntegrations(
       { status: async () => baseStatus() },
