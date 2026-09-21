@@ -5981,7 +5981,7 @@ export default function App() {
                     <span className="rb-big-icon">
                       <GensparkMark size={26} />
                     </span>
-                    <span>Genspark AI</span>
+                    <span>AI Office</span>
                   </button>
                   <button
                     className="rb-big ai-entry"
