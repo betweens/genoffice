@@ -24,6 +24,7 @@ import { fileCountKey, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
 import { SettingsModal } from './SettingsModal'
+import { SidebarUsername } from './SidebarUsername'
 import { skillUpdateDue } from './IntegrationsPane'
 
 declare global {
@@ -2868,7 +2869,10 @@ export function Home() {
         </nav>
         <div className="sidebar-divider" />
         {renderFolderPanel()}
-        <AccountEntry onStatusChange={handleAccountStatus} />
+        <div className="sidebar-footer">
+          <SidebarUsername />
+          <AccountEntry onStatusChange={handleAccountStatus} />
+        </div>
       </aside>
       {selectedFolder && root?.usable ? (
         renderFolderContent()

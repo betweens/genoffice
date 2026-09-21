@@ -183,3 +183,8 @@ export function toCorporateProxyView(
     passwordEncryption: encryption,
   }
 }
+
+/** True when no proxy password is stored (or decrypt failed and the field is empty). */
+export function proxyPasswordMissing(password: string | undefined | null): boolean {
+  return typeof password !== 'string' || password.length === 0
+}

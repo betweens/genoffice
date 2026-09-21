@@ -25,6 +25,11 @@ interface LaunchOptions {
   lang?: string
   /** pre-seed app-settings.json with onboardingSeen=true to start at the home screen */
   onboardingSeen?: boolean
+  /**
+   * Leave corporate-proxy password unset so the startup password gate appears.
+   * Default is to seed a dummy password so other e2e tests are not blocked.
+   */
+  proxyPasswordGate?: boolean
   /** extra app-settings.json keys (e.g. defaultSaveDir) written before launch */
   settings?: Record<string, unknown>
   /** subdir of e2e/artifacts to store this launch's video in */
@@ -44,11 +49,24 @@ export async function launchShell(options: LaunchOptions): Promise<LaunchedApp> 
     throw new Error(`Missing build output at ${SHELL_MAIN} — run \`npm run build:all\` first`)
   }
   const userDataDir = options.userDataDir ?? (await mkdtemp(join(tmpdir(), 'genoffice-e2e-')))
-  if (options.onboardingSeen || options.settings) {
+  const isFresh = !options.userDataDir
+  const shouldSeedProxy = !options.proxyPasswordGate
+  if (options.onboardingSeen || options.settings || (isFresh && shouldSeedProxy)) {
     await writeFile(
       join(userDataDir, 'app-settings.json'),
       JSON.stringify({
         ...(options.onboardingSeen ? { onboardingSeen: true } : {}),
+        ...(shouldSeedProxy
+          ? {
+              corporateProxy: {
+                enabled: true,
+                username: 'e2e',
+                host: 'webproxy.cn.vwgroup.com',
+                port: 8080,
+                passwordPlain: 'e2e',
+              },
+            }
+          : {}),
         ...options.settings,
       }),
     )

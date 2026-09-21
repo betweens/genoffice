@@ -17,6 +17,7 @@ import {
   parseStoredCorporateProxy,
   passwordEncryptionOf,
   passwordFromStored,
+  proxyPasswordMissing,
   serializeCorporateProxy,
   toCorporateProxyView,
   type CorporateProxyDraft,
@@ -119,6 +120,14 @@ export function savedCorporateProxyUrl(
   crypto: ProxyCrypto = electronProxyCrypto(),
 ): string | null {
   return corporateProxyUrlFromStored(readStored(settingsPath), (cipher) => crypto.decrypt(cipher))
+}
+
+/** True when no usable proxy password is persisted yet (startup gate). */
+export function savedProxyPasswordMissing(
+  settingsPath: string,
+  crypto: ProxyCrypto = electronProxyCrypto(),
+): boolean {
+  return proxyPasswordMissing(loadProxySettings(settingsPath, crypto).password)
 }
 
 function redactProxyUrl(message: string, proxyUrl: string): string {

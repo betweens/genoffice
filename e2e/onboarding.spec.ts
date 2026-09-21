@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import { launchShell, closeAndSaveVideo, screenshotPath } from './helpers'
 
 test.describe('first-run onboarding', () => {
+  test('enterprise: onboarding overlay is disabled', async () => {
+    const launched = await launchShell({ videoDir: 'onboarding-disabled' })
+    const { page } = launched
+    try {
+      await expect(page.locator('.home-hero')).toBeVisible()
+      await expect(page.locator('.onb-overlay')).toHaveCount(0)
+      await page.screenshot({ path: screenshotPath('onboarding-disabled-home') })
+    } finally {
+      await closeAndSaveVideo(launched, 'onboarding-disabled')
+    }
+  })
+
+  /* enterprise: onboarding disabled — keep the walkthrough specs for reference
   test('fresh install walks all slides and persists the seen flag', async () => {
     const launched = await launchShell({ videoDir: 'onboarding-walkthrough' })
     const { page, userDataDir } = launched
@@ -70,4 +81,5 @@ test.describe('first-run onboarding', () => {
       await closeAndSaveVideo(launched, 'onboarding-skip')
     }
   })
+  */
 })

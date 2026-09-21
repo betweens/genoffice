@@ -10,6 +10,7 @@ import {
   parseStoredCorporateProxy,
   passwordEncryptionOf,
   passwordFromStored,
+  proxyPasswordMissing,
   serializeCorporateProxy,
   toCorporateProxyView,
 } from '../src/corporate-proxy'
@@ -162,5 +163,17 @@ describe('parseStoredCorporateProxy', () => {
   it('returns null for garbage', () => {
     expect(parseStoredCorporateProxy(null)).toBeNull()
     expect(parseStoredCorporateProxy('nope')).toBeNull()
+  })
+})
+
+describe('proxyPasswordMissing', () => {
+  it('is true when no password has been saved yet', () => {
+    expect(proxyPasswordMissing('')).toBe(true)
+    expect(proxyPasswordMissing(undefined)).toBe(true)
+    expect(proxyPasswordMissing(null)).toBe(true)
+  })
+
+  it('is false once a password is present', () => {
+    expect(proxyPasswordMissing('x')).toBe(false)
   })
 })

@@ -105,6 +105,7 @@ export {
   parseStoredCorporateProxy,
   passwordEncryptionOf,
   passwordFromStored,
+  proxyPasswordMissing,
   serializeCorporateProxy,
   toCorporateProxyView,
   type CorporateProxyDraft,

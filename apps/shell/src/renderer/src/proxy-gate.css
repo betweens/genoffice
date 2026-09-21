@@ -1,0 +1,103 @@
+/* Blocking corporate-proxy password gate (startup). Chrome tokens only. */
+
+.proxy-gate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(4px);
+}
+
+.proxy-gate-dialog {
+  width: min(var(--modal-width-sm), 90vw);
+  padding: 24px;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-8);
+  box-shadow: var(--shadow-modal-strong);
+}
+
+.proxy-gate-dialog h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.proxy-gate-dialog p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.proxy-gate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.proxy-gate-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.proxy-gate-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.proxy-gate-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.proxy-gate-input:read-only,
+.proxy-gate-input:disabled {
+  color: var(--text-secondary);
+  background: var(--hover);
+  cursor: default;
+}
+
+.proxy-gate-static {
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.proxy-gate-error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.proxy-gate-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.proxy-gate-dialog .btn-primary {
+  background: var(--color-btn-primary);
+  border: none;
+  color: var(--color-btn-primary-text);
+}
+
+.proxy-gate-dialog .btn-primary:hover:not(:disabled) {
+  background: var(--color-btn-primary-hover);
+}
+
+.proxy-gate-dialog .btn-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

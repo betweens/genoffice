@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Home } from './Home'
-import { Onboarding } from './Onboarding'
+import { ProxyPasswordDialog } from './ProxyPasswordDialog'
 import { StarPromptCard } from './StarPromptCard'
 import { TabBar } from './TabBar'
+import { proxyPasswordMissing } from '@genoffice/electron-utils/corporate-proxy'
+// enterprise: onboarding disabled
+// import { Onboarding } from './Onboarding'
 
 interface AppFrameProps {
   /** resolved before first paint (main.tsx) so home never flashes under the overlay */
@@ -11,8 +14,12 @@ interface AppFrameProps {
 
 export function AppFrame({ initialOnboardingSeen }: AppFrameProps) {
   const [homeActive, setHomeActive] = useState(true)
-  const [showOnboarding, setShowOnboarding] = useState(!initialOnboardingSeen)
+  // enterprise: onboarding disabled
+  const [showOnboarding] = useState(false)
+  void initialOnboardingSeen
+  // const [showOnboarding, setShowOnboarding] = useState(!initialOnboardingSeen)
   const [starPromptDocOpens, setStarPromptDocOpens] = useState<number | null>(null)
+  const [proxyGate, setProxyGate] = useState<'pending' | 'needed' | 'ready'>('pending')
 
   useEffect(() => {
     const applyTabs = (tabs: Awaited<ReturnType<typeof window.aiOfficeTabs.list>>) => {
@@ -23,11 +30,27 @@ export function AppFrame({ initialOnboardingSeen }: AppFrameProps) {
     return window.aiOfficeTabs.onChanged(applyTabs)
   }, [])
 
+  useEffect(() => {
+    let alive = true
+    void window.aiOffice
+      .getProxySettings()
+      .then((settings) => {
+        if (!alive) return
+        setProxyGate(proxyPasswordMissing(settings.password) ? 'needed' : 'ready')
+      })
+      .catch(() => {
+        if (alive) setProxyGate('needed')
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   // The "star us" invitation is decided (and counted as shown) by the main
   // process; ask once per session, and never while onboarding is up — a
   // first-run user can't have met the value threshold anyway.
   useEffect(() => {
-    if (showOnboarding) return
+    if (showOnboarding || proxyGate === 'needed') return
     let alive = true
     void window.aiOffice.starPromptShouldShow?.().then((result) => {
       if (alive && result.show) setStarPromptDocOpens(result.docOpens)
@@ -35,18 +58,19 @@ export function AppFrame({ initialOnboardingSeen }: AppFrameProps) {
     return () => {
       alive = false
     }
-  }, [showOnboarding])
+  }, [showOnboarding, proxyGate])
 
-  const finishOnboarding = async (): Promise<boolean> => {
-    try {
-      const persisted = await window.aiOffice.setOnboardingSeen()
-      if (!persisted) return false
-      setShowOnboarding(false)
-      return true
-    } catch {
-      return false
-    }
-  }
+  // enterprise: onboarding disabled
+  // const finishOnboarding = async (): Promise<boolean> => {
+  //   try {
+  //     const persisted = await window.aiOffice.setOnboardingSeen()
+  //     if (!persisted) return false
+  //     setShowOnboarding(false)
+  //     return true
+  //   } catch {
+  //     return false
+  //   }
+  // }
 
   return (
     <div className="app-frame">
@@ -58,8 +82,11 @@ export function AppFrame({ initialOnboardingSeen }: AppFrameProps) {
       </div>
       {/* editor WebContentsViews paint above ALL shell DOM, so the overlay only
        * renders while the home tab is active — it comes back when home does */}
+      {/* enterprise: onboarding disabled
       {showOnboarding && homeActive && <Onboarding onDone={finishOnboarding} />}
-      {starPromptDocOpens !== null && !showOnboarding && homeActive && (
+      */}
+      {proxyGate === 'needed' && <ProxyPasswordDialog onSaved={() => setProxyGate('ready')} />}
+      {starPromptDocOpens !== null && !showOnboarding && proxyGate !== 'needed' && homeActive && (
         <StarPromptCard docOpens={starPromptDocOpens} onClose={() => setStarPromptDocOpens(null)} />
       )}
     </div>

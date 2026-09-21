@@ -386,6 +386,12 @@ export const strings = {
     onbTitle3: '人人免费',
     onbBody3: '无授权费用，无广告，无水印。',
     onbNote3: 'AI 功能可能消耗 Genspark 积分。',
+    // Enterprise proxy password gate
+    proxyGateTitle: '企业网络代理',
+    proxyGateBody: '首次使用请输入代理密码。用户名取自本机系统账户，密码仅保存在本机。',
+    proxyGateConfirm: '保存并继续',
+    proxyGateNeedPassword: '请输入代理密码',
+    proxyGateSaveFailed: '无法保存代理设置，请重试',
     onbBack: '上一步',
   },
   en: {
@@ -786,6 +792,13 @@ export const strings = {
     onbTitle3: 'Free for everyone',
     onbBody3: 'No license fees. No ads. No watermarks.',
     onbNote3: 'AI features may consume Genspark credits.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Back',
   },
   ja: {
@@ -1200,6 +1213,13 @@ export const strings = {
     onbTitle3: 'すべての人に無料',
     onbBody3: 'ライセンス料なし、広告なし、透かしなし。',
     onbNote3: 'AI 機能は Genspark クレジットを消費する場合があります。',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: '戻る',
   },
   ko: {
@@ -1605,6 +1625,13 @@ export const strings = {
     onbTitle3: '모두에게 무료',
     onbBody3: '라이선스 비용 없음, 광고 없음, 워터마크 없음.',
     onbNote3: 'AI 기능은 Genspark 크레딧을 소모할 수 있습니다.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: '이전',
   },
   fr: {
@@ -2026,6 +2053,13 @@ export const strings = {
     onbTitle3: 'Gratuit pour tous',
     onbBody3: 'Pas de licence. Pas de publicité. Pas de filigrane.',
     onbNote3: 'Les fonctions IA peuvent consommer des crédits Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Retour',
   },
   de: {
@@ -2450,6 +2484,13 @@ export const strings = {
     onbTitle3: 'Kostenlos für alle',
     onbBody3: 'Keine Lizenzgebühren. Keine Werbung. Keine Wasserzeichen.',
     onbNote3: 'KI-Funktionen können Genspark-Credits verbrauchen.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Zurück',
   },
   es: {
@@ -2869,6 +2910,13 @@ export const strings = {
     onbTitle3: 'Gratis para todos',
     onbBody3: 'Sin licencias. Sin anuncios. Sin marcas de agua.',
     onbNote3: 'Las funciones de IA pueden consumir créditos de Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Atrás',
   },
   th: {
@@ -3271,6 +3319,13 @@ export const strings = {
     onbTitle3: 'ฟรีสำหรับทุกคน',
     onbBody3: 'ไม่มีค่าลิขสิทธิ์ ไม่มีโฆษณา ไม่มีลายน้ำ',
     onbNote3: 'ฟีเจอร์ AI อาจใช้เครดิต Genspark',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'ย้อนกลับ',
   },
   id: {
@@ -3684,6 +3739,13 @@ export const strings = {
     onbTitle3: 'Gratis untuk semua',
     onbBody3: 'Tanpa biaya lisensi. Tanpa iklan. Tanpa watermark.',
     onbNote3: 'Fitur AI dapat menggunakan kredit Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Kembali',
   },
   ru: {
@@ -4095,6 +4157,13 @@ export const strings = {
     onbTitle3: 'Бесплатно для всех',
     onbBody3: 'Без лицензий. Без рекламы. Без водяных знаков.',
     onbNote3: 'Функции ИИ могут расходовать кредиты Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Назад',
   },
   ar: {
@@ -4498,6 +4567,13 @@ export const strings = {
     onbTitle3: 'مجاني للجميع',
     onbBody3: 'بلا رسوم ترخيص، بلا إعلانات، بلا علامات مائية.',
     onbNote3: 'قد تستهلك ميزات الذكاء الاصطناعي أرصدة Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'رجوع',
   },
   pt: {
@@ -4907,6 +4983,13 @@ export const strings = {
     onbTitle3: 'Gratuito para todos',
     onbBody3: "Sem licenças. Sem anúncios. Sem marcas d'água.",
     onbNote3: 'Os recursos de IA podem consumir créditos Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Voltar',
   },
   it: {
@@ -5315,6 +5398,13 @@ export const strings = {
     onbTitle3: 'Gratuito per tutti',
     onbBody3: 'Nessuna licenza. Nessuna pubblicità. Nessuna filigrana.',
     onbNote3: 'Le funzioni IA possono consumare crediti Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Indietro',
   },
   pl: {
@@ -5717,6 +5807,13 @@ export const strings = {
     onbTitle3: 'Za darmo dla każdego',
     onbBody3: 'Bez opłat licencyjnych. Bez reklam. Bez znaków wodnych.',
     onbNote3: 'Funkcje AI mogą zużywać kredyty Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Wstecz',
   },
   cs: {
@@ -6106,6 +6203,13 @@ export const strings = {
     onbTitle3: 'Zdarma pro všechny',
     onbBody3: 'Žádné licenční poplatky. Žádné reklamy. Žádné vodoznaky.',
     onbNote3: 'Funkce AI mohou čerpat kredity Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Zpět',
     setAutoSave: 'Automaticky ukládat všechny dokumenty',
     setAutoSaveDesc:
@@ -6525,6 +6629,13 @@ export const strings = {
     onbTitle3: 'Gratis voor iedereen',
     onbBody3: 'Geen licentiekosten. Geen advertenties. Geen watermerken.',
     onbNote3: 'AI-functies kunnen Genspark-credits verbruiken.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Terug',
   },
   ms: {
@@ -6933,6 +7044,13 @@ export const strings = {
     onbTitle3: 'Percuma untuk semua',
     onbBody3: 'Tiada yuran lesen. Tiada iklan. Tiada tera air.',
     onbNote3: 'Ciri AI mungkin menggunakan kredit Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'Kembali',
   },
   he: {
@@ -7323,6 +7441,13 @@ export const strings = {
     onbTitle3: 'חינם לכולם',
     onbBody3: 'ללא דמי רישיון, ללא פרסומות, ללא סימני מים.',
     onbNote3: 'תכונות AI עשויות לצרוך קרדיטים של Genspark.',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'חזרה',
   },
   hi: {
@@ -7725,6 +7850,13 @@ export const strings = {
     onbTitle3: 'सभी के लिए मुफ़्त',
     onbBody3: 'कोई लाइसेंस शुल्क नहीं। कोई विज्ञापन नहीं। कोई वॉटरमार्क नहीं।',
     onbNote3: 'AI सुविधाएँ Genspark क्रेडिट खर्च कर सकती हैं।',
+    // Enterprise proxy password gate
+    proxyGateTitle: 'Corporate proxy',
+    proxyGateBody:
+      'Enter the proxy password to continue. Username is this computer’s system account. The password stays on this machine.',
+    proxyGateConfirm: 'Save and continue',
+    proxyGateNeedPassword: 'Enter the proxy password',
+    proxyGateSaveFailed: 'Could not save proxy settings. Try again.',
     onbBack: 'वापस',
   },
   'zh-TW': {
@@ -8105,6 +8237,12 @@ export const strings = {
     onbTitle3: '人人免費',
     onbBody3: '無授權費用，無廣告，無浮水印。',
     onbNote3: 'AI 功能可能消耗 Genspark 點數。',
+    // Enterprise proxy password gate
+    proxyGateTitle: '企業網路代理',
+    proxyGateBody: '首次使用請輸入代理密碼。使用者名稱取自本機系統帳戶，密碼僅保存在本機。',
+    proxyGateConfirm: '儲存並繼續',
+    proxyGateNeedPassword: '請輸入代理密碼',
+    proxyGateSaveFailed: '無法儲存代理設定，請重試',
     onbBack: '上一步',
   },
 } as const

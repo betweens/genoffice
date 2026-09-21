@@ -16,6 +16,7 @@ import {
   loadProxySettings,
   saveProxySettings,
   savedCorporateProxyUrl,
+  savedProxyPasswordMissing,
   testProxySettings,
   type ProxyCrypto,
 } from '../src/main/proxy-settings'
@@ -53,6 +54,10 @@ describe('loadProxySettings', () => {
     expect(view.port).toBe(DEFAULT_PROXY_PORT)
     expect(view.maskedUrl).toBe('')
   })
+
+  it('treats a fresh settings file as missing the proxy password', () => {
+    expect(savedProxyPasswordMissing(settingsPath, memoryCrypto())).toBe(true)
+  })
 })
 
 describe('saveProxySettings', () => {
@@ -77,6 +82,7 @@ describe('saveProxySettings', () => {
     const raw = JSON.parse(readFileSync(settingsPath, 'utf8')) as {
       corporateProxy: { passwordEnc?: string; passwordPlain?: string }
     }
+    expect(savedProxyPasswordMissing(settingsPath, memoryCrypto())).toBe(false)
     expect(raw.corporateProxy.passwordEnc).toBeTruthy()
     expect(raw.corporateProxy.passwordPlain).toBeUndefined()
     expect(JSON.stringify(raw)).not.toContain('s3cret!')

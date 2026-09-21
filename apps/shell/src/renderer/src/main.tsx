@@ -23,8 +23,10 @@ document.body.classList.add(IS_MAC ? 'mac' : 'overlay-title-bar')
 // so the UI never flashes (home showing briefly before the onboarding overlay)
 void Promise.all([
   window.aiOffice.getLanguage(),
+  // enterprise: onboarding disabled
   // if the flag is unreadable, skip onboarding rather than block the home screen
-  window.aiOffice.onboardingSeen().catch(() => true),
+  // window.aiOffice.onboardingSeen().catch(() => true),
+  Promise.resolve(true),
   window.aiOffice.getTheme().catch(() => 'system' as const),
 ]).then(([lang, onboardingSeen, theme]) => {
   document.documentElement.lang = htmlLang(lang)
