@@ -24,7 +24,6 @@ import { fileCountKey, visiblePageCount } from './counts'
 import { useI18n } from './locale'
 import type { I18n, StringKey } from './locale'
 import { AccountEntry } from './AccountEntry'
-import { SidebarUsername } from './SidebarUsername'
 
 declare global {
   interface Window {
@@ -2560,7 +2559,6 @@ export function Home() {
         <div className="sidebar-divider" />
         {renderFolderPanel()}
         <div className="sidebar-footer">
-          <SidebarUsername />
           <AccountEntry onStatusChange={handleAccountStatus} />
         </div>
       </aside>

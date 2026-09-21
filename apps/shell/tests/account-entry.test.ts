@@ -86,6 +86,7 @@ describe('sidebar account chip identity', () => {
     expect(host.querySelector('.account-avatar')?.classList.contains('identified')).toBe(true)
     expect(host.querySelector('.account-avatar')?.classList.contains('logged-in')).toBe(false)
     expect(host.querySelector('.account-btn')?.getAttribute('data-tip')).toBe('系统用户: humingfei')
+    expect(host.querySelector('.sidebar-username')).toBeNull()
   })
 
   it('prefers the Genspark email local-part when signed in', async () => {

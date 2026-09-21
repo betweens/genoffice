@@ -191,39 +191,13 @@ body.vib .home {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- bottom-left footer: OS username + account entry ---- */
+/* ---- bottom-left footer: account entry ---- */
 /* clicking the account button opens the settings modal (settings.css) */
 
 .sidebar-footer {
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
-}
-
-.sidebar-username {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-  padding: 4px 8px 8px;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--text-secondary);
-}
-
-.sidebar-username-label {
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-
-.sidebar-username-value {
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .account-entry {

@@ -3,7 +3,7 @@ import type { AccountStatus } from '../../shared/home-api'
 import { skillUpdateDue } from './IntegrationsPane'
 import { useI18n } from './locale'
 import { SettingsModal } from './SettingsModal'
-import { useSystemUsername } from './SidebarUsername'
+import { useSystemUsername } from './useSystemUsername'
 
 // ── Account entry (bottom-left) ──────────────────────────
 // Genspark (gsk) login plus the enterprise OS identity. Clicking opens
