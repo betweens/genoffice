@@ -26,11 +26,12 @@
  * users can still install local font files.
  *
  * Enterprise AI zero-config (fork): GENOFFICE_AI_BASE_URL, GENOFFICE_AI_API_KEY,
- * GENOFFICE_AI_MODEL, optional GENOFFICE_AI_MEDIA_* , and GENOFFICE_AI_SEARCH_API_KEY
- * or BOCHA_API_KEY must be in the process environment BEFORE `npm run dist:*` /
- * `npm run build:all`. `tools/generate-enterprise-defaults.mjs` bakes them into
- * the JS bundle (electron-vite). `electron-builder.env` is loaded only when
- * this file runs — too late for that bake. Baked secrets are extractable from
+ * GENOFFICE_AI_MODEL, optional GENOFFICE_AI_MEDIA_* / GENOFFICE_AI_IMAGE_MODEL /
+ * GENOFFICE_AI_ANALYSIS_MODEL / GENOFFICE_AI_VIDEO_MODEL, and
+ * GENOFFICE_AI_SEARCH_API_KEY or BOCHA_API_KEY must be in the process environment
+ * BEFORE `npm run dist:*` / `npm run build:all`. `tools/generate-enterprise-defaults.mjs`
+ * bakes them into the JS bundle (electron-vite). `electron-builder.env` is loaded only
+ * when this file runs — too late for that bake. Baked secrets are extractable from
  * the package; internal distribution only.
  */
 

@@ -180,6 +180,7 @@ export function defaultAiMediaSettings(): AiMediaSettings {
       apiKey: '',
       imageModel: meta.defaultImageModel,
       analysisModel: meta.defaultAnalysisModel,
+      videoModel: '',
       baseUrl: meta.needsBaseUrl ? '' : undefined,
     }
   }
@@ -209,6 +210,7 @@ export function resolveAiMediaSettings(
       apiKey: (config.apiKey ?? base?.apiKey ?? '').trim(),
       imageModel: (config.imageModel ?? base?.imageModel ?? '').trim(),
       analysisModel: (config.analysisModel ?? base?.analysisModel ?? '').trim(),
+      videoModel: (config.videoModel ?? base?.videoModel ?? '').trim(),
       ...(config.baseUrl !== undefined
         ? { baseUrl: config.baseUrl.trim() }
         : base?.baseUrl !== undefined
@@ -262,6 +264,7 @@ export function activeMediaConfig(
     apiKey: '',
     imageModel: '',
     analysisModel: '',
+    videoModel: '',
     baseUrl: '',
   }
   return { provider, config }
@@ -276,7 +279,9 @@ function byokModel(
   const meta = getMediaProviderMeta(active.provider)!
   return capability === 'image'
     ? active.config.imageModel || meta.defaultImageModel
-    : active.config.analysisModel || meta.defaultAnalysisModel
+    : capability === 'video'
+      ? active.config.videoModel || active.config.analysisModel || meta.defaultAnalysisModel
+      : active.config.analysisModel || meta.defaultAnalysisModel
 }
 
 function capabilityAvailable(

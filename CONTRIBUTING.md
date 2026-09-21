@@ -154,15 +154,20 @@ packager machine or CI before** `npm run dist:mac|win|linux` (or
 gitignored `packages/ai-provider/src/enterprise-defaults.generated.ts`, which
 electron-vite bundles into the app.
 
-| Variable                                                     | Effect                                            |
-| ------------------------------------------------------------ | ------------------------------------------------- |
-| `GENOFFICE_AI_BASE_URL`                                      | OpenAI-compatible chat base URL (media fallback)  |
-| `GENOFFICE_AI_API_KEY`                                       | Chat API key (media fallback)                     |
-| `GENOFFICE_AI_MODEL`                                         | Prefills the chat model id when Settings has none |
-| `GENOFFICE_AI_MEDIA_BASE_URL` / `GENOFFICE_AI_MEDIA_API_KEY` | Optional media custom URL/key                     |
-| `GENOFFICE_AI_SEARCH_API_KEY` or `BOCHA_API_KEY`             | Bocha search key                                  |
+| Variable                                                     | Effect                                                    |
+| ------------------------------------------------------------ | --------------------------------------------------------- |
+| `GENOFFICE_AI_BASE_URL`                                      | OpenAI-compatible chat base URL (media fallback)          |
+| `GENOFFICE_AI_API_KEY`                                       | Chat API key (media fallback)                             |
+| `GENOFFICE_AI_MODEL`                                         | Prefills the chat model id when Settings has none         |
+| `GENOFFICE_AI_MEDIA_BASE_URL` / `GENOFFICE_AI_MEDIA_API_KEY` | Optional media custom URL/key                             |
+| `GENOFFICE_AI_IMAGE_MODEL`                                   | Prefills Custom image-generation model when empty         |
+| `GENOFFICE_AI_ANALYSIS_MODEL`                                | Prefills Custom image-analysis model when empty           |
+| `GENOFFICE_AI_VIDEO_MODEL`                                   | Optional; prefills Custom video-analysis model when empty |
+| `GENOFFICE_AI_SEARCH_API_KEY` or `BOCHA_API_KEY`             | Bocha search key                                          |
 
 Runtime still prefers live `process.env` over the baked copy, then empty.
+Model ids are `trim()`ed; Unicode hyphens in ids such as `qwen3‑vl` are rewritten
+to ASCII `-` (`qwen3-vl`) at bake and overlay time so the API id matches.
 `npm run dev` generates an empty file and keeps using the shell env.
 Do not put these keys only in `apps/shell/electron-builder.env` — that file
 is loaded after the JS bundle is compiled. Never commit the generated file;

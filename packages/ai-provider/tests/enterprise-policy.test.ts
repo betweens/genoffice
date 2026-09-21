@@ -13,6 +13,7 @@ import {
   isMaskedApiKey,
   maskApiKey,
   persistEnterpriseAiSettings,
+  normalizeEnterpriseModelId,
   readEnterpriseAiEnv,
   resolveLockedChatRequest,
 } from '../src/enterprise-policy'
@@ -34,6 +35,9 @@ const SEEDED_ENV = {
   GENOFFICE_AI_BASE_URL: ' https://llm.example.internal/v1 ',
   GENOFFICE_AI_API_KEY: ' sk-enterprise-placeholder-1234 ',
   GENOFFICE_AI_MODEL: ' acme-chat ',
+  GENOFFICE_AI_IMAGE_MODEL: ' flux-schnell ',
+  GENOFFICE_AI_ANALYSIS_MODEL: ' qwen3\u2011vl ',
+  GENOFFICE_AI_VIDEO_MODEL: '',
   GENOFFICE_AI_SEARCH_API_KEY: ' bocha-placeholder-5678 ',
 }
 const BAKED_DEFAULTS = {
@@ -42,6 +46,9 @@ const BAKED_DEFAULTS = {
   GENOFFICE_AI_MODEL: 'baked-chat',
   GENOFFICE_AI_MEDIA_BASE_URL: '',
   GENOFFICE_AI_MEDIA_API_KEY: '',
+  GENOFFICE_AI_IMAGE_MODEL: 'flux-schnell',
+  GENOFFICE_AI_ANALYSIS_MODEL: 'qwen3-vl',
+  GENOFFICE_AI_VIDEO_MODEL: '',
   GENOFFICE_AI_SEARCH_API_KEY: 'bocha-baked-placeholder',
   BOCHA_API_KEY: '',
 }
@@ -62,6 +69,9 @@ describe('readEnterpriseAiEnv', () => {
       model: 'acme-chat',
       mediaApiKey: 'sk-enterprise-placeholder-1234',
       mediaBaseUrl: 'https://llm.example.internal/v1',
+      imageModel: 'flux-schnell',
+      analysisModel: 'qwen3-vl',
+      videoModel: '',
       searchApiKey: 'bocha-placeholder-5678',
     })
   })
@@ -80,6 +90,9 @@ describe('readEnterpriseAiEnv', () => {
       model: '',
       mediaApiKey: '',
       mediaBaseUrl: '',
+      imageModel: '',
+      analysisModel: '',
+      videoModel: '',
       searchApiKey: '',
     })
   })
@@ -92,6 +105,9 @@ describe('readEnterpriseAiEnv', () => {
       model: 'baked-chat',
       mediaApiKey: 'sk-baked-placeholder-9999',
       mediaBaseUrl: 'https://llm.baked.internal/v1',
+      imageModel: 'flux-schnell',
+      analysisModel: 'qwen3-vl',
+      videoModel: '',
       searchApiKey: 'bocha-baked-placeholder',
     })
   })
@@ -147,6 +163,9 @@ describe('readEnterpriseAiEnv', () => {
       'GENOFFICE_AI_MODEL',
       'GENOFFICE_AI_MEDIA_BASE_URL',
       'GENOFFICE_AI_MEDIA_API_KEY',
+      'GENOFFICE_AI_IMAGE_MODEL',
+      'GENOFFICE_AI_ANALYSIS_MODEL',
+      'GENOFFICE_AI_VIDEO_MODEL',
       'GENOFFICE_AI_SEARCH_API_KEY',
       'BOCHA_API_KEY',
     ] as const
@@ -157,6 +176,9 @@ describe('readEnterpriseAiEnv', () => {
       expect(seeded.baseUrl).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_BASE_URL)
       expect(seeded.apiKey).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_API_KEY)
       expect(seeded.model).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_MODEL)
+      expect(seeded.imageModel).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_IMAGE_MODEL)
+      expect(seeded.analysisModel).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_ANALYSIS_MODEL)
+      expect(seeded.videoModel).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_VIDEO_MODEL)
       expect(seeded.searchApiKey).toBe(
         ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_SEARCH_API_KEY ||
           ENTERPRISE_AI_BUILD_DEFAULTS.BOCHA_API_KEY,
@@ -207,6 +229,9 @@ describe('applyEnterpriseAiPolicy', () => {
     expect(locked.media?.videoAnalysisProvider).toBe('custom')
     expect(locked.media?.providers.custom.apiKey).toBe('sk-enterprise-placeholder-1234')
     expect(locked.media?.providers.custom.baseUrl).toBe('https://llm.example.internal/v1')
+    expect(locked.media?.providers.custom.imageModel).toBe('flux-schnell')
+    expect(locked.media?.providers.custom.analysisModel).toBe('qwen3-vl')
+    expect(locked.media?.providers.custom.videoModel).toBe('')
   })
 
   it('turns Genspark cloud tools off even when the stored file left them on', () => {
@@ -239,6 +264,39 @@ describe('applyEnterpriseAiPolicy', () => {
     expect(locked.search?.providers.bocha.apiKey).toBe('bocha-baked-placeholder')
     expect(locked.media?.providers.custom.apiKey).toBe('sk-baked-placeholder-9999')
     expect(locked.media?.providers.custom.baseUrl).toBe('https://llm.baked.internal/v1')
+    expect(locked.media?.providers.custom.imageModel).toBe('flux-schnell')
+    expect(locked.media?.providers.custom.analysisModel).toBe('qwen3-vl')
+    expect(locked.media?.providers.custom.videoModel).toBe('')
+  })
+
+  it('prefills Custom media models from bake when process.env is empty', () => {
+    const locked = applyEnterpriseAiPolicy(
+      defaultAiSettings(undefined, EMPTY_ENV),
+      EMPTY_ENV,
+      BAKED_DEFAULTS,
+    )
+    expect(locked.media?.providers.custom).toMatchObject({
+      imageModel: 'flux-schnell',
+      analysisModel: 'qwen3-vl',
+      videoModel: '',
+    })
+  })
+
+  it('prefills media models from env only when the stored models are empty', () => {
+    const settings = defaultAiSettings(undefined, EMPTY_ENV)
+    settings.media!.providers.custom.imageModel = 'user-flux'
+    settings.media!.providers.custom.analysisModel = 'user-vl'
+    const locked = applyEnterpriseAiPolicy(settings, SEEDED_ENV)
+    expect(locked.media?.providers.custom.imageModel).toBe('user-flux')
+    expect(locked.media?.providers.custom.analysisModel).toBe('user-vl')
+  })
+
+  it('overlays a baked video model onto an empty Custom slot', () => {
+    const locked = applyEnterpriseAiPolicy(defaultAiSettings(undefined, EMPTY_ENV), EMPTY_ENV, {
+      ...BAKED_DEFAULTS,
+      GENOFFICE_AI_VIDEO_MODEL: 'qwen3-vl',
+    })
+    expect(locked.media?.providers.custom.videoModel).toBe('qwen3-vl')
   })
 
   it('prefills model from env only when the stored model is empty', () => {
@@ -329,6 +387,8 @@ describe('persistEnterpriseAiSettings', () => {
     expect(persisted.media?.imageProvider).toBe('custom')
     expect(persisted.media?.providers.custom.apiKey).toBe('')
     expect(persisted.media?.providers.custom.baseUrl).toBe('')
+    expect(persisted.media?.providers.custom.imageModel).toBe('flux-schnell')
+    expect(persisted.media?.providers.custom.analysisModel).toBe('qwen3-vl')
   })
 
   it('does not write baked defaults to the payload that hits disk', () => {
@@ -349,6 +409,9 @@ describe('persistEnterpriseAiSettings', () => {
     expect(persisted.search?.providers.bocha.apiKey).toBe('')
     expect(persisted.media?.providers.custom.apiKey).toBe('')
     expect(persisted.media?.providers.custom.baseUrl).toBe('')
+    expect(persisted.media?.providers.custom.imageModel).toBe('flux-schnell')
+    expect(persisted.media?.providers.custom.analysisModel).toBe('qwen3-vl')
+    expect(persisted.media?.providers.custom.videoModel).toBe('')
   })
 
   it('writes gskToolsEnabled false even if the renderer sent true', () => {
@@ -390,6 +453,14 @@ describe('persistEnterpriseAiSettings', () => {
     const searchPersisted = persistEnterpriseAiSettings(incoming, previous, EMPTY_ENV)
     expect(searchPersisted.search?.provider).toBe('bocha')
     expect(searchPersisted.search?.providers.bocha.apiKey).toBe('bocha-on-disk')
+  })
+})
+
+describe('normalizeEnterpriseModelId', () => {
+  it('rewrites unicode hyphens to ASCII so qwen3‑vl matches the API id', () => {
+    expect(normalizeEnterpriseModelId('qwen3\u2011vl')).toBe('qwen3-vl')
+    expect(normalizeEnterpriseModelId('qwen3\u2010vl')).toBe('qwen3-vl')
+    expect(normalizeEnterpriseModelId('flux-schnell')).toBe('flux-schnell')
   })
 })
 

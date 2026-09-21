@@ -2219,6 +2219,7 @@ const aiMediaProviderConfigSchema = z
     baseUrl: z.string().optional(),
     imageModel: z.string(),
     analysisModel: z.string(),
+    videoModel: z.string().optional(),
   })
   .strict()
 

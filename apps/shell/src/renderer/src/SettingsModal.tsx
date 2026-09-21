@@ -973,6 +973,7 @@ function AiMediaPane({ t }: { t: TFunc }) {
         apiKey: '',
         imageModel: meta?.defaultImageModel ?? '',
         analysisModel: meta?.defaultAnalysisModel ?? '',
+        videoModel: '',
       }
     )
   }
@@ -1054,6 +1055,7 @@ function AiMediaPane({ t }: { t: TFunc }) {
     fallback: string,
     value: string,
     onChange: (v: string) => void,
+    readOnly = false,
   ) => (
     <div className="set-field">
       <div className="set-field-text">
@@ -1067,17 +1069,19 @@ function AiMediaPane({ t }: { t: TFunc }) {
           value={value || fallback}
           ariaLabel={t('setAiModelId')}
           options={models.map((m) => ({ value: m, label: m }))}
-          onPick={onChange}
+          onPick={readOnly ? () => undefined : onChange}
         />
       ) : (
         <input
           id={id}
           className="set-input"
           type="text"
+          readOnly={readOnly}
+          aria-readonly={readOnly || undefined}
           value={value}
           placeholder="model-id"
           spellCheck={false}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={readOnly ? undefined : (e) => onChange(e.target.value)}
         />
       )}
     </div>
@@ -1161,7 +1165,15 @@ function AiMediaPane({ t }: { t: TFunc }) {
     const meta =
       mediaCatalog.find((m) => m.id === id) ?? options.find((m) => m.id === id) ?? options[0]!
     const config = mediaConfigOf(id)
-    const modelField = cap === 'image' ? 'imageModel' : 'analysisModel'
+    const modelReadOnly = keyReadOnly || baseUrlReadOnly
+    const modelField =
+      cap === 'image' ? 'imageModel' : cap === 'video' ? 'videoModel' : 'analysisModel'
+    const modelValue =
+      cap === 'image'
+        ? config.imageModel
+        : cap === 'video'
+          ? config.videoModel || config.analysisModel
+          : config.analysisModel
     return (
       <section key={cap}>
         <h4 className="set-pane-subtitle">{title}</h4>
@@ -1173,8 +1185,9 @@ function AiMediaPane({ t }: { t: TFunc }) {
               `set-ai-${cap}-model`,
               cap === 'image' ? meta.imageModels : meta.analysisModels,
               cap === 'image' ? meta.defaultImageModel : meta.defaultAnalysisModel,
-              config[modelField],
+              modelValue,
               (m) => updateMediaConfig(id, { [modelField]: m }),
+              modelReadOnly,
             )}
             {keyRow(`set-ai-${cap}-key`, config.apiKey, meta.keyPlaceholder, (v) =>
               updateMediaConfig(id, { apiKey: v }),

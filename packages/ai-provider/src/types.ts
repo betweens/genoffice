@@ -69,6 +69,8 @@ export interface AiMediaProviderConfig {
   imageModel: string
   /** image/video understanding model (empty = the provider default) */
   analysisModel: string
+  /** video understanding model (empty = fall back to analysisModel) */
+  videoModel?: string
 }
 
 export interface AiMediaProviderMeta {

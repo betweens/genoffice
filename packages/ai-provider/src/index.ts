@@ -44,6 +44,9 @@ export {
   GENOFFICE_AI_MEDIA_API_KEY_ENV,
   GENOFFICE_AI_MEDIA_BASE_URL_ENV,
   GENOFFICE_AI_MODEL_ENV,
+  GENOFFICE_AI_IMAGE_MODEL_ENV,
+  GENOFFICE_AI_ANALYSIS_MODEL_ENV,
+  GENOFFICE_AI_VIDEO_MODEL_ENV,
   GENOFFICE_AI_PROVIDER_ENV,
   GENOFFICE_AI_SEARCH_API_KEY_ENV,
   BOCHA_API_KEY_ENV,
@@ -56,6 +59,7 @@ export {
   isMaskedApiKey,
   maskApiKey,
   persistEnterpriseAiSettings,
+  normalizeEnterpriseModelId,
   readEnterpriseAiEnv,
   resolveLockedChatRequest,
 } from './enterprise-policy'

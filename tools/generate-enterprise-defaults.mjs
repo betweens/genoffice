@@ -18,6 +18,8 @@
  *   GENOFFICE_AI_MODEL
  *   GENOFFICE_AI_MEDIA_BASE_URL / GENOFFICE_AI_MEDIA_API_KEY  (optional; runtime
  *     falls back to the chat URL/key)
+ *   GENOFFICE_AI_IMAGE_MODEL / GENOFFICE_AI_ANALYSIS_MODEL / GENOFFICE_AI_VIDEO_MODEL
+ *     (optional; prefills Custom media model ids when Settings has none)
  *   GENOFFICE_AI_SEARCH_API_KEY or BOCHA_API_KEY
  *
  * `apps/shell/electron-builder.env` is loaded by electron-builder only, after
@@ -40,9 +42,24 @@ const KEYS = [
   'GENOFFICE_AI_MODEL',
   'GENOFFICE_AI_MEDIA_BASE_URL',
   'GENOFFICE_AI_MEDIA_API_KEY',
+  'GENOFFICE_AI_IMAGE_MODEL',
+  'GENOFFICE_AI_ANALYSIS_MODEL',
+  'GENOFFICE_AI_VIDEO_MODEL',
   'GENOFFICE_AI_SEARCH_API_KEY',
   'BOCHA_API_KEY',
 ]
+
+/** Unicode dashes (NB hyphen, en/em dash, minus, fullwidth) → ASCII '-' so ids like qwen3‑vl match the API. */
+const MODEL_KEYS = new Set([
+  'GENOFFICE_AI_MODEL',
+  'GENOFFICE_AI_IMAGE_MODEL',
+  'GENOFFICE_AI_ANALYSIS_MODEL',
+  'GENOFFICE_AI_VIDEO_MODEL',
+])
+
+function normalizeModelId(value) {
+  return value.replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
+}
 
 function parseArgs(argv) {
   const out = { empty: false, outPath: DEFAULT_OUT }
@@ -64,7 +81,8 @@ function parseArgs(argv) {
 
 function readValue(empty, name) {
   if (empty) return ''
-  return process.env[name]?.trim() ?? ''
+  const raw = process.env[name]?.trim() ?? ''
+  return MODEL_KEYS.has(name) ? normalizeModelId(raw) : raw
 }
 
 function renderModule(values) {

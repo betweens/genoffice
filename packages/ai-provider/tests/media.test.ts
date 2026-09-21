@@ -7,6 +7,7 @@ import {
   imageGenerationAvailable,
   mediaAnalysisAvailable,
   resolveAiMediaSettings,
+  videoAnalysisAvailable,
 } from '../src/media'
 import {
   analyzeMediaWithProvider,
@@ -88,6 +89,7 @@ describe('media settings', () => {
       apiKey: 'AIza',
       imageModel: 'gemini-3-pro-image',
       analysisModel: '',
+      videoModel: '',
     })
     expect(media.providers.openai.imageModel).toBe('gpt-image-2')
   })
@@ -138,6 +140,9 @@ describe('media settings', () => {
     custom.providers.custom.analysisModel = ''
     expect(mediaAnalysisAvailable(withMedia(custom), false)).toBe(false)
     expect(imageGenerationAvailable(withMedia(custom), false)).toBe(true)
+    custom.providers.custom.videoModel = 'qwen3-vl'
+    expect(videoAnalysisAvailable(withMedia(custom), false)).toBe(true)
+    expect(mediaAnalysisAvailable(withMedia(custom), false)).toBe(true)
     expect(imageGenerationAvailable(null, true)).toBe(true)
   })
 })
