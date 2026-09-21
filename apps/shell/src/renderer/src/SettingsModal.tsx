@@ -12,7 +12,9 @@ import type { AiFontSize, AiPanelPrefs, AiPanelSide } from '@genoffice/ui'
 import {
   DEFAULT_MAX_OUTPUT_TOKENS,
   ENTERPRISE_AI_UI_POLICY,
+  ENTERPRISE_LOCKED_MEDIA_PROVIDER,
   ENTERPRISE_LOCKED_PROVIDER,
+  ENTERPRISE_LOCKED_SEARCH_PROVIDER,
   MAX_MAX_OUTPUT_TOKENS,
   MIN_MAX_OUTPUT_TOKENS,
   clampMaxOutputTokens,
@@ -260,6 +262,39 @@ function Field({
   )
 }
 
+/** Enterprise lock: static provider name — no Dropdown, no caret, not selectable. */
+function LockedProviderField({
+  id,
+  label,
+  providerId,
+  providerLabel,
+}: {
+  id: string
+  label: string
+  providerId: string
+  providerLabel: string
+}) {
+  return (
+    <div className="set-field">
+      <div className="set-field-text">
+        <label className="set-field-label" htmlFor={id}>
+          {label}
+        </label>
+      </div>
+      <div
+        id={id}
+        className="set-input set-provider-static"
+        role="text"
+        aria-readonly="true"
+        aria-label={label}
+      >
+        <ProviderLogo id={providerId} />
+        <span>{providerLabel}</span>
+      </div>
+    </div>
+  )
+}
+
 /** AI model pane: provider / model / key / base URL, saved to userData/ai-settings.json */
 function AiModelPane({ t }: { t: TFunc }) {
   const [catalog, setCatalog] = useState<AiCatalogEntry[]>(
@@ -377,24 +412,12 @@ function AiModelPane({ t }: { t: TFunc }) {
   return (
     <>
       <h3 className="set-pane-title">{t('setSecAiModel')}</h3>
-      <div className="set-field">
-        <div className="set-field-text">
-          <label className="set-field-label" htmlFor="set-ai-provider">
-            {t('setAiProvider')}
-          </label>
-        </div>
-        {/* Enterprise lock: not a Dropdown — no list, no caret, not selectable. */}
-        <div
-          id="set-ai-provider"
-          className="set-input set-provider-static"
-          role="text"
-          aria-readonly="true"
-          aria-label={t('setAiProvider')}
-        >
-          <ProviderLogo id={ENTERPRISE_LOCKED_PROVIDER} />
-          <span>{meta?.label ?? 'Custom'}</span>
-        </div>
-      </div>
+      <LockedProviderField
+        id="set-ai-provider"
+        label={t('setAiProvider')}
+        providerId={ENTERPRISE_LOCKED_PROVIDER}
+        providerLabel={meta?.label ?? 'Custom'}
+      />
       <div className="set-field-desc set-ai-note">
         {isGenspark ? t('setAiGensparkHint') : isCodex ? t('setAiCodexHint') : t('setAiByokNote')}
       </div>
@@ -593,7 +616,19 @@ function AiMediaPane({ t }: { t: TFunc }) {
   useEffect(() => {
     let alive = true
     void window.aiOffice.getAiSettings?.().then((s) => {
-      if (alive && s) setSettings(s)
+      if (!alive || !s) return
+      setSettings({
+        ...s,
+        search: s.search ? { ...s.search, provider: ENTERPRISE_LOCKED_SEARCH_PROVIDER } : s.search,
+        media: s.media
+          ? {
+              ...s.media,
+              imageProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+              analysisProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+              videoAnalysisProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+            }
+          : s.media,
+      })
     })
     return () => {
       alive = false
@@ -687,33 +722,16 @@ function AiMediaPane({ t }: { t: TFunc }) {
     }
   }
 
-  const providerRow = (
-    label: string,
-    value: string,
-    options: { id: string; label: string }[],
-    onPick: (id: string) => void,
-  ) => (
-    <div className="set-field">
-      <div className="set-field-text">
-        <label className="set-field-label">{t('setAiProvider')}</label>
-      </div>
-      <Dropdown
-        className="set-dd"
-        value={value}
-        ariaLabel={label}
-        options={options.map((c) => ({
-          value: c.id,
-          label: c.label,
-          render: (
-            <>
-              <ProviderLogo id={c.id} />
-              {c.label}
-            </>
-          ),
-        }))}
-        onPick={onPick}
-      />
-    </div>
+  const keyReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyKey
+  const baseUrlReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyBaseUrl
+
+  const providerRow = (htmlId: string, providerId: string, providerLabel: string) => (
+    <LockedProviderField
+      id={htmlId}
+      label={t('setAiProvider')}
+      providerId={providerId}
+      providerLabel={providerLabel}
+    />
   )
 
   const modelRow = (
@@ -769,12 +787,14 @@ function AiMediaPane({ t }: { t: TFunc }) {
       <input
         id={id}
         className="set-input"
-        type="password"
-        value={value}
+        type="text"
+        readOnly={keyReadOnly}
+        aria-readonly={keyReadOnly || undefined}
+        value={keyReadOnly ? maskApiKey(value) : value}
         placeholder={placeholder}
         spellCheck={false}
         autoComplete="off"
-        onChange={(e) => onChange(e.target.value.trim())}
+        onChange={keyReadOnly ? undefined : (e) => onChange(e.target.value.trim())}
       />
     </div>
   )
@@ -798,10 +818,12 @@ function AiMediaPane({ t }: { t: TFunc }) {
         id={id}
         className="set-input"
         type="text"
+        readOnly={baseUrlReadOnly}
+        aria-readonly={baseUrlReadOnly || undefined}
         value={value}
         placeholder={meta.needsBaseUrl ? 'https://…/v1' : meta.defaultBaseUrl}
         spellCheck={false}
-        onChange={(e) => onChange(e.target.value.trim())}
+        onChange={baseUrlReadOnly ? undefined : (e) => onChange(e.target.value.trim())}
       />
     </div>
   )
@@ -821,33 +843,16 @@ function AiMediaPane({ t }: { t: TFunc }) {
           ? !!m.analysisProtocol && m.videoAnalysis
           : !!m.analysisProtocol,
     )
-    const current =
-      cap === 'image'
-        ? media.imageProvider
-        : cap === 'video'
-          ? media.videoAnalysisProvider
-          : media.analysisProvider
-    const meta = options.find((m) => m.id === current) ?? options[0]!
-    const id = meta.id
+    const id = ENTERPRISE_LOCKED_MEDIA_PROVIDER
+    const meta =
+      mediaCatalog.find((m) => m.id === id) ?? options.find((m) => m.id === id) ?? options[0]!
     const config = mediaConfigOf(id)
-    const pick = (next: string) => {
-      const p = next as AiMediaProviderId
-      setMedia(
-        cap === 'image'
-          ? { ...media, imageProvider: p }
-          : cap === 'video'
-            ? { ...media, videoAnalysisProvider: p }
-            : { ...media, analysisProvider: p },
-      )
-    }
     const modelField = cap === 'image' ? 'imageModel' : 'analysisModel'
     return (
       <section key={cap}>
         <h4 className="set-pane-subtitle">{title}</h4>
-        {providerRow(title, id, options, pick)}
-        <div className="set-field-desc set-ai-note">
-          {id === 'genspark' ? t('setAiMediaGensparkHint') : meta.description}
-        </div>
+        {providerRow(`set-ai-${cap}-provider`, id, meta.label)}
+        <div className="set-field-desc set-ai-note">{meta.description}</div>
         {id !== 'genspark' && (
           <>
             {modelRow(
@@ -869,9 +874,9 @@ function AiMediaPane({ t }: { t: TFunc }) {
     )
   }
 
-  const searchMeta = searchCatalog.find((m) => m.id === search.provider)
-  const searchKey =
-    search.provider === 'genspark' ? '' : (search.providers[search.provider]?.apiKey ?? '')
+  const searchMeta =
+    searchCatalog.find((m) => m.id === ENTERPRISE_LOCKED_SEARCH_PROVIDER) ?? searchCatalog[0]
+  const searchKey = search.providers.bocha?.apiKey ?? ''
 
   return (
     <>
@@ -879,25 +884,19 @@ function AiMediaPane({ t }: { t: TFunc }) {
       <div className="set-field-desc set-ai-note">{t('setAiSharedKeyHint')}</div>
       <section>
         <h4 className="set-pane-subtitle">{t('setAiCapSearch')}</h4>
-        {providerRow(t('setAiCapSearch'), search.provider, searchCatalog, (v) =>
-          setSearch({ ...search, provider: v as AiSearchSettings['provider'] }),
+        {providerRow(
+          'set-ai-search-provider',
+          ENTERPRISE_LOCKED_SEARCH_PROVIDER,
+          searchMeta?.label ?? 'Bocha',
         )}
-        <div className="set-field-desc set-ai-note">
-          {search.provider === 'genspark'
-            ? t('setAiSearchGensparkHint')
-            : search.provider === 'bocha'
-              ? t('setAiSearchBochaHint')
-              : searchMeta?.imageSearch
-                ? t('setAiSearchSerperHint')
-                : t('setAiSearchTavilyHint')}
-        </div>
-        {search.provider !== 'genspark' &&
-          keyRow('set-ai-search-key', searchKey, searchMeta?.keyPlaceholder ?? 'API Key', (v) =>
-            setSearch({
-              ...search,
-              providers: { ...search.providers, [search.provider]: { apiKey: v } },
-            }),
-          )}
+        <div className="set-field-desc set-ai-note">{t('setAiSearchBochaHint')}</div>
+        {keyRow('set-ai-search-key', searchKey, searchMeta?.keyPlaceholder ?? 'API Key', (v) =>
+          setSearch({
+            ...search,
+            provider: ENTERPRISE_LOCKED_SEARCH_PROVIDER,
+            providers: { ...search.providers, bocha: { apiKey: v } },
+          }),
+        )}
       </section>
       {mediaBlock('image')}
       {mediaBlock('analysis')}

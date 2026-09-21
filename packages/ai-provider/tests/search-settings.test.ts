@@ -10,12 +10,12 @@ import {
 const emptyKeys = { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } }
 
 describe('search settings', () => {
-  it('defaults to genspark with empty keys and rides along in defaultAiSettings', () => {
+  it('defaults to Bocha with empty keys and rides along in defaultAiSettings', () => {
     expect(defaultAiSearchSettings()).toEqual({
-      provider: 'genspark',
+      provider: 'bocha',
       providers: emptyKeys,
     })
-    expect(defaultAiSettings().search?.provider).toBe('genspark')
+    expect(defaultAiSettings().search?.provider).toBe('bocha')
     const resolved = resolveAiSettings(
       { provider: 'genspark', providers: {} as never },
       defaultAiSettings(),
@@ -52,8 +52,8 @@ describe('search settings', () => {
     expect(bocha.providers.tavily.apiKey).toBe('')
   })
 
-  it('activates a BYOK search provider only with a key', () => {
-    expect(activeSearchProvider({ search: undefined })).toBe('genspark')
+  it('locks the active search provider to Bocha even when another vendor is configured', () => {
+    expect(activeSearchProvider({ search: undefined })).toBe('bocha')
     expect(
       activeSearchProvider({
         search: {
@@ -61,7 +61,7 @@ describe('search settings', () => {
           providers: emptyKeys,
         },
       }),
-    ).toBe('genspark')
+    ).toBe('bocha')
     expect(
       activeSearchProvider({
         search: {
@@ -69,15 +69,7 @@ describe('search settings', () => {
           providers: { ...emptyKeys, serper: { apiKey: 'k' } },
         },
       }),
-    ).toBe('serper')
-    expect(
-      activeSearchProvider({
-        search: {
-          provider: 'serper',
-          providers: { ...emptyKeys, serper: { apiKey: '   ' } },
-        },
-      }),
-    ).toBe('genspark')
+    ).toBe('bocha')
     expect(
       activeSearchProvider({
         search: {
@@ -86,16 +78,8 @@ describe('search settings', () => {
         },
       }),
     ).toBe('bocha')
-    expect(
-      activeSearchProvider({
-        search: {
-          provider: 'bocha',
-          providers: emptyKeys,
-        },
-      }),
-    ).toBe('genspark')
     expect(activeSearchProvider({ search: { provider: 'bing', providers: {} } as never })).toBe(
-      'genspark',
+      'bocha',
     )
   })
 })

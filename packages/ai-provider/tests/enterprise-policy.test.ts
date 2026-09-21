@@ -1,23 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import {
   ENTERPRISE_ALLOWED_PROVIDERS,
+  ENTERPRISE_LOCKED_MEDIA_PROVIDER,
   ENTERPRISE_LOCKED_PROVIDER,
+  ENTERPRISE_LOCKED_SEARCH_PROVIDER,
   allowsKeylessChat,
   applyEnterpriseAiPolicy,
   enterpriseAiPolicy,
+  filterAiMediaProviderCatalog,
   filterAiProviderCatalog,
+  filterAiSearchProviderCatalog,
   isMaskedApiKey,
   maskApiKey,
   persistEnterpriseAiSettings,
   readEnterpriseAiEnv,
   resolveLockedChatRequest,
 } from '../src/enterprise-policy'
+import { AI_MEDIA_PROVIDERS } from '../src/media'
 import {
   AI_PROVIDERS,
   activeProvider,
   defaultAiSettings,
   resolveAiSettings,
 } from '../src/providers'
+import { AI_SEARCH_PROVIDERS } from '../src/search-settings'
 import type { AiSettings } from '../src/types'
 
 /** Tests never read the real process env — placeholders only. */
@@ -27,6 +33,7 @@ const SEEDED_ENV = {
   GENOFFICE_AI_BASE_URL: ' https://llm.example.internal/v1 ',
   GENOFFICE_AI_API_KEY: ' sk-enterprise-placeholder-1234 ',
   GENOFFICE_AI_MODEL: ' acme-chat ',
+  GENOFFICE_AI_SEARCH_API_KEY: ' bocha-placeholder-5678 ',
 }
 
 function byokKimi(): AiSettings {
@@ -43,7 +50,16 @@ describe('readEnterpriseAiEnv', () => {
       baseUrl: 'https://llm.example.internal/v1',
       apiKey: 'sk-enterprise-placeholder-1234',
       model: 'acme-chat',
+      mediaApiKey: 'sk-enterprise-placeholder-1234',
+      mediaBaseUrl: 'https://llm.example.internal/v1',
+      searchApiKey: 'bocha-placeholder-5678',
     })
+  })
+
+  it('seeds the Bocha key from BOCHA_API_KEY when GENOFFICE_AI_SEARCH_API_KEY is unset', () => {
+    expect(readEnterpriseAiEnv({ BOCHA_API_KEY: ' bocha-env-placeholder ' }).searchApiKey).toBe(
+      'bocha-env-placeholder',
+    )
   })
 
   it('leaves key/url/model empty when unset so ops can see missing config', () => {
@@ -52,6 +68,9 @@ describe('readEnterpriseAiEnv', () => {
       baseUrl: '',
       apiKey: '',
       model: '',
+      mediaApiKey: '',
+      mediaBaseUrl: '',
+      searchApiKey: '',
     })
   })
 })
@@ -63,6 +82,10 @@ describe('enterpriseAiPolicy', () => {
     expect(policy.readOnlyKey).toBe(true)
     expect(policy.readOnlyBaseUrl).toBe(true)
     expect(policy.provider).toBe('custom')
+    expect(policy.mediaProvider).toBe('custom')
+    expect(policy.searchProvider).toBe('bocha')
+    expect(policy.lockMediaProvider).toBe(true)
+    expect(policy.lockSearchProvider).toBe(true)
     expect(policy.allowedProviders).toEqual(ENTERPRISE_ALLOWED_PROVIDERS)
     expect([...policy.allowedProviders]).toEqual(['custom'])
   })
@@ -79,6 +102,13 @@ describe('applyEnterpriseAiPolicy', () => {
     })
     // other adapters stay in the map for tests / upstream merge
     expect(locked.providers.kimi.apiKey).toBe('sk-user-placeholder')
+    expect(locked.search?.provider).toBe('bocha')
+    expect(locked.search?.providers.bocha.apiKey).toBe('bocha-placeholder-5678')
+    expect(locked.media?.imageProvider).toBe('custom')
+    expect(locked.media?.analysisProvider).toBe('custom')
+    expect(locked.media?.videoAnalysisProvider).toBe('custom')
+    expect(locked.media?.providers.custom.apiKey).toBe('sk-enterprise-placeholder-1234')
+    expect(locked.media?.providers.custom.baseUrl).toBe('https://llm.example.internal/v1')
   })
 
   it('does not invent a key or URL when env is unset', () => {
@@ -86,6 +116,9 @@ describe('applyEnterpriseAiPolicy', () => {
     expect(locked.provider).toBe('custom')
     expect(locked.providers.custom.apiKey).toBe('')
     expect(locked.providers.custom.baseUrl).toBe('')
+    expect(locked.search?.provider).toBe('bocha')
+    expect(locked.search?.providers.bocha.apiKey).toBe('')
+    expect(locked.media?.imageProvider).toBe('custom')
   })
 
   it('prefills model from env only when the stored model is empty', () => {
@@ -123,6 +156,41 @@ describe('resolveAiSettings + activeProvider honor the lock', () => {
     expect(activeProvider(resolved, EMPTY_ENV)).toBe('custom')
     expect(resolved.providers.custom.apiKey).toBe('')
     expect(resolved.providers.custom.baseUrl).toBe('')
+    expect(resolved.search?.provider).toBe(ENTERPRISE_LOCKED_SEARCH_PROVIDER)
+    expect(resolved.media?.imageProvider).toBe(ENTERPRISE_LOCKED_MEDIA_PROVIDER)
+  })
+
+  it('wins over a hand-edited search/media vendor selection', () => {
+    const resolved = resolveAiSettings(
+      {
+        provider: 'openai',
+        providers: {} as never,
+        search: {
+          provider: 'serper',
+          providers: { serper: { apiKey: 'serper-placeholder' } } as never,
+        },
+        media: {
+          imageProvider: 'openai',
+          analysisProvider: 'gemini',
+          videoAnalysisProvider: 'gemini',
+          providers: {
+            openai: {
+              apiKey: 'sk-media-placeholder',
+              imageModel: 'gpt-image-2',
+              analysisModel: '',
+            },
+          } as never,
+        },
+      },
+      defaultAiSettings(undefined, EMPTY_ENV),
+      SEEDED_ENV,
+    )
+    expect(resolved.search?.provider).toBe('bocha')
+    expect(resolved.search?.providers.bocha.apiKey).toBe('bocha-placeholder-5678')
+    expect(resolved.media?.imageProvider).toBe('custom')
+    expect(resolved.media?.analysisProvider).toBe('custom')
+    expect(resolved.media?.videoAnalysisProvider).toBe('custom')
+    expect(resolved.media?.providers.custom.apiKey).toBe('sk-enterprise-placeholder-1234')
   })
 })
 
@@ -134,6 +202,11 @@ describe('persistEnterpriseAiSettings', () => {
     expect(persisted.providers.custom.apiKey).toBe('')
     expect(persisted.providers.custom.baseUrl).toBe('')
     expect(persisted.providers.custom.model).toBe('acme-chat')
+    expect(persisted.search?.provider).toBe('bocha')
+    expect(persisted.search?.providers.bocha.apiKey).toBe('')
+    expect(persisted.media?.imageProvider).toBe('custom')
+    expect(persisted.media?.providers.custom.apiKey).toBe('')
+    expect(persisted.media?.providers.custom.baseUrl).toBe('')
   })
 
   it('refuses a masked or blank key so Save cannot wipe a stored secret', () => {
@@ -153,6 +226,22 @@ describe('persistEnterpriseAiSettings', () => {
     const wiped = persistEnterpriseAiSettings(incoming, previous, EMPTY_ENV)
     expect(wiped.providers.custom.apiKey).toBe('sk-on-disk-placeholder')
     expect(wiped.providers.custom.baseUrl).toBe('http://localhost:11434/v1')
+
+    previous.search = {
+      provider: 'serper',
+      providers: {
+        serper: { apiKey: '' },
+        tavily: { apiKey: '' },
+        bocha: { apiKey: 'bocha-on-disk' },
+      },
+    }
+    incoming.search = {
+      provider: 'tavily',
+      providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '****disk' } },
+    }
+    const searchPersisted = persistEnterpriseAiSettings(incoming, previous, EMPTY_ENV)
+    expect(searchPersisted.search?.provider).toBe('bocha')
+    expect(searchPersisted.search?.providers.bocha.apiKey).toBe('bocha-on-disk')
   })
 })
 
@@ -172,6 +261,12 @@ describe('filterAiProviderCatalog', () => {
     const visible = filterAiProviderCatalog(AI_PROVIDERS)
     expect(visible.map((p) => p.id)).toEqual(['custom'])
     expect(visible[0]?.label).toBe('Custom')
+  })
+
+  it('hides non-custom media vendors and non-Bocha search vendors', () => {
+    expect(filterAiMediaProviderCatalog(AI_MEDIA_PROVIDERS).map((p) => p.id)).toEqual(['custom'])
+    expect(filterAiSearchProviderCatalog(AI_SEARCH_PROVIDERS).map((p) => p.id)).toEqual(['bocha'])
+    expect(filterAiSearchProviderCatalog(AI_SEARCH_PROVIDERS)[0]?.label).toBe('Bocha')
   })
 })
 

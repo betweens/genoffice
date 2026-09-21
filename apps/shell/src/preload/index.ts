@@ -4,7 +4,9 @@ import {
   AI_MEDIA_PROVIDERS,
   AI_PROVIDERS,
   AI_SEARCH_PROVIDERS,
+  filterAiMediaProviderCatalog,
   filterAiProviderCatalog,
+  filterAiSearchProviderCatalog,
   getProviderAdapter,
 } from '@genoffice/ai-provider/browser'
 import type { AiSettings, CodexModelCatalog } from '@genoffice/ai-provider/browser'
@@ -406,10 +408,10 @@ const homeApi: HomeApi = {
       : { ok: false, error: typeof raw.error === 'string' ? raw.error : 'Connection failed' }
   },
   getAiMediaProviders() {
-    return AI_MEDIA_PROVIDERS
+    return filterAiMediaProviderCatalog(AI_MEDIA_PROVIDERS)
   },
   getAiSearchProviders() {
-    return AI_SEARCH_PROVIDERS
+    return filterAiSearchProviderCatalog(AI_SEARCH_PROVIDERS)
   },
   async testAiSearchSettings(input) {
     const raw = ((await ipcRenderer.invoke('ai:search-test', input)) ?? {}) as {

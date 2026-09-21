@@ -1,3 +1,4 @@
+import { ENTERPRISE_LOCKED_SEARCH_PROVIDER, type EnvLike } from './enterprise-policy'
 import type {
   AiSearchProviderId,
   AiSearchProviderMeta,
@@ -19,7 +20,7 @@ export const AI_SEARCH_PROVIDERS: AiSearchProviderMeta[] = [
 
 export function defaultAiSearchSettings(): AiSearchSettings {
   return {
-    provider: 'genspark',
+    provider: ENTERPRISE_LOCKED_SEARCH_PROVIDER,
     providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
   }
 }
@@ -37,12 +38,10 @@ export function resolveAiSearchSettings(
   return { provider: stored.provider ?? defaults.provider, providers }
 }
 
-/** the stored search provider, honored only with a key; otherwise genspark (gsk + free chain) */
-export function activeSearchProvider(settings: Pick<AiSettings, 'search'>): AiSearchProviderId {
-  const search = settings.search
-  if (!search || search.provider === 'genspark') return 'genspark'
-  if (!AI_SEARCH_PROVIDERS.some((m) => m.id === search.provider)) return 'genspark'
-  // Trim-aware: a whitespace-only key from in-memory settings falls back
-  // instead of sending `Bearer    ` to the search backend.
-  return search.providers?.[search.provider]?.apiKey?.trim() ? search.provider : 'genspark'
+/** Enterprise fork: web search is locked to Bocha; a missing key does not fall back to Genspark. */
+export function activeSearchProvider(
+  _settings: Pick<AiSettings, 'search'>,
+  _env?: EnvLike,
+): AiSearchProviderId {
+  return ENTERPRISE_LOCKED_SEARCH_PROVIDER
 }

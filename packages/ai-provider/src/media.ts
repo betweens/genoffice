@@ -1,3 +1,4 @@
+import { ENTERPRISE_LOCKED_MEDIA_PROVIDER, type EnvLike } from './enterprise-policy'
 import type {
   AiMediaProviderConfig,
   AiMediaProviderId,
@@ -183,9 +184,9 @@ export function defaultAiMediaSettings(): AiMediaSettings {
     }
   }
   return {
-    imageProvider: 'genspark',
-    analysisProvider: 'genspark',
-    videoAnalysisProvider: 'genspark',
+    imageProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+    analysisProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+    videoAnalysisProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
     providers,
   }
 }
@@ -239,27 +240,15 @@ export function mediaConfigUsable(
 }
 
 /**
- * The stored provider for one capability, honored only when it exists, has
- * that capability and is usable; anything else falls back to genspark so a
- * half-filled setup degrades to the signed-in default.
+ * Enterprise fork: every media capability is locked to `custom`. A hand-edited
+ * settings file cannot fall back to Genspark / OpenAI / Gemini.
  */
 export function activeMediaProvider(
-  settings: Pick<AiSettings, 'media'>,
-  capability: MediaCapability,
+  _settings: Pick<AiSettings, 'media'>,
+  _capability: MediaCapability,
+  _env?: EnvLike,
 ): AiMediaProviderId {
-  const media = settings.media
-  if (!media) return 'genspark'
-  const id =
-    capability === 'image'
-      ? media.imageProvider
-      : capability === 'video'
-        ? media.videoAnalysisProvider
-        : media.analysisProvider
-  if (!id || id === 'genspark') return 'genspark'
-  const meta = getMediaProviderMeta(id)
-  if (!meta || !providerHasCapability(meta, capability)) return 'genspark'
-  if (!mediaConfigUsable(meta, media.providers?.[id])) return 'genspark'
-  return id
+  return ENTERPRISE_LOCKED_MEDIA_PROVIDER
 }
 
 /** the active BYOK config for one capability, or null when it runs through Genspark */
@@ -269,7 +258,13 @@ export function activeMediaConfig(
 ): { provider: Exclude<AiMediaProviderId, 'genspark'>; config: AiMediaProviderConfig } | null {
   const provider = activeMediaProvider(settings, capability)
   if (provider === 'genspark') return null
-  return { provider, config: settings.media!.providers[provider] }
+  const config = settings.media?.providers?.[provider] ?? {
+    apiKey: '',
+    imageModel: '',
+    analysisModel: '',
+    baseUrl: '',
+  }
+  return { provider, config }
 }
 
 function byokModel(
