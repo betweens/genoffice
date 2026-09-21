@@ -44,3 +44,7 @@ _scratch-*
 
 # Local brand asset staging (do not commit)
 .brand-staging/
+
+# Packager-baked enterprise AI overlay (may contain secrets). The empty
+# shape lives in packages/ai-provider/src/enterprise-defaults.ts.
+/packages/ai-provider/src/enterprise-defaults.generated.ts

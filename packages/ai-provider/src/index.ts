@@ -59,7 +59,8 @@ export {
   readEnterpriseAiEnv,
   resolveLockedChatRequest,
 } from './enterprise-policy'
-export type { EnterpriseAiPolicy, EnterpriseAiUiPolicy, EnvLike } from './enterprise-policy'
+export type { EnterpriseAiPolicy } from './enterprise-policy'
+export type { EnterpriseAiUiPolicy, EnvLike } from './enterprise-ui'
 export {
   AI_MEDIA_PROVIDERS,
   GEMINI_MEDIA_BASE_URL,

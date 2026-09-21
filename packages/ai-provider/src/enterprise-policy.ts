@@ -1,22 +1,46 @@
+import {
+  EMPTY_ENTERPRISE_AI_BUILD_DEFAULTS,
+  type EnterpriseAiBuildDefaults,
+} from './enterprise-defaults'
+import { ENTERPRISE_AI_BUILD_DEFAULTS } from './enterprise-defaults.generated'
+import {
+  ENTERPRISE_AI_UI_POLICY,
+  ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+  ENTERPRISE_LOCKED_PROVIDER,
+  ENTERPRISE_LOCKED_SEARCH_PROVIDER,
+  isMaskedApiKey,
+  type EnterpriseAiUiPolicy,
+  type EnvLike,
+} from './enterprise-ui'
 import type {
   AiMediaProviderConfig,
-  AiMediaProviderId,
-  AiMediaProviderMeta,
   AiMediaSettings,
   AiProviderConfig,
   AiProviderId,
-  AiProviderMeta,
-  AiSearchProviderId,
-  AiSearchProviderMeta,
   AiSearchSettings,
   AiSettings,
 } from './types'
 
+export {
+  ENTERPRISE_AI_UI_POLICY,
+  ENTERPRISE_ALLOWED_PROVIDERS,
+  ENTERPRISE_LOCKED_MEDIA_PROVIDER,
+  ENTERPRISE_LOCKED_PROVIDER,
+  ENTERPRISE_LOCKED_SEARCH_PROVIDER,
+  filterAiMediaProviderCatalog,
+  filterAiProviderCatalog,
+  filterAiSearchProviderCatalog,
+  isMaskedApiKey,
+  maskApiKey,
+} from './enterprise-ui'
+export type { EnterpriseAiUiPolicy, EnvLike } from './enterprise-ui'
+
 /**
  * Enterprise fork: chat and media are locked to the OpenAI-compatible `custom`
  * provider; web search is locked to Bocha; Genspark cloud tools stay off (the
- * Settings switch is hidden). Runtime credentials come from process env
- * (Electron inherits launch env); nothing here hardcodes secrets.
+ * Settings switch is hidden). Runtime credentials come from process env first,
+ * then packager-baked defaults (`enterprise-defaults.generated.ts`), then
+ * empty. Nothing here hardcodes secrets.
  *
  *   GENOFFICE_AI_PROVIDER       coerced to `custom`
  *   GENOFFICE_AI_BASE_URL       OpenAI-compatible base URL (chat; media fallback)
@@ -25,6 +49,10 @@ import type {
  *   GENOFFICE_AI_MEDIA_API_KEY  media custom key (falls back to GENOFFICE_AI_API_KEY)
  *   GENOFFICE_AI_MEDIA_BASE_URL media custom URL (falls back to GENOFFICE_AI_BASE_URL)
  *   GENOFFICE_AI_SEARCH_API_KEY Bocha key (falls back to BOCHA_API_KEY)
+ *
+ * Packaged apps do not inherit the packager's shell env on double-click.
+ * Export the vars above before `npm run dist:*` so
+ * `tools/generate-enterprise-defaults.mjs` bakes them into the bundle.
  */
 export const GENOFFICE_AI_PROVIDER_ENV = 'GENOFFICE_AI_PROVIDER'
 export const GENOFFICE_AI_BASE_URL_ENV = 'GENOFFICE_AI_BASE_URL'
@@ -34,41 +62,6 @@ export const GENOFFICE_AI_MEDIA_API_KEY_ENV = 'GENOFFICE_AI_MEDIA_API_KEY'
 export const GENOFFICE_AI_MEDIA_BASE_URL_ENV = 'GENOFFICE_AI_MEDIA_BASE_URL'
 export const GENOFFICE_AI_SEARCH_API_KEY_ENV = 'GENOFFICE_AI_SEARCH_API_KEY'
 export const BOCHA_API_KEY_ENV = 'BOCHA_API_KEY'
-
-export const ENTERPRISE_LOCKED_PROVIDER: AiProviderId = 'custom'
-export const ENTERPRISE_ALLOWED_PROVIDERS = ['custom'] as const satisfies readonly AiProviderId[]
-export const ENTERPRISE_LOCKED_MEDIA_PROVIDER: AiMediaProviderId = 'custom'
-export const ENTERPRISE_LOCKED_SEARCH_PROVIDER: AiSearchProviderId = 'bocha'
-
-export type EnvLike = Record<string, string | undefined>
-
-export interface EnterpriseAiUiPolicy {
-  readonly lockProvider: true
-  readonly allowedProviders: typeof ENTERPRISE_ALLOWED_PROVIDERS
-  readonly readOnlyKey: true
-  readonly readOnlyBaseUrl: true
-  readonly provider: typeof ENTERPRISE_LOCKED_PROVIDER
-  readonly lockMediaProvider: true
-  readonly mediaProvider: typeof ENTERPRISE_LOCKED_MEDIA_PROVIDER
-  readonly lockSearchProvider: true
-  readonly searchProvider: typeof ENTERPRISE_LOCKED_SEARCH_PROVIDER
-  /** Genspark-only cloud-tools switch — hidden; settings always persist false. */
-  readonly hideGskTools: true
-}
-
-/** UI lock flags — no secrets, safe to ship in the renderer bundle. */
-export const ENTERPRISE_AI_UI_POLICY: EnterpriseAiUiPolicy = {
-  lockProvider: true,
-  allowedProviders: ENTERPRISE_ALLOWED_PROVIDERS,
-  readOnlyKey: true,
-  readOnlyBaseUrl: true,
-  provider: ENTERPRISE_LOCKED_PROVIDER,
-  lockMediaProvider: true,
-  mediaProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
-  lockSearchProvider: true,
-  searchProvider: ENTERPRISE_LOCKED_SEARCH_PROVIDER,
-  hideGskTools: true,
-}
 
 export interface EnterpriseAiPolicy extends EnterpriseAiUiPolicy {
   readonly apiKey: string
@@ -87,8 +80,34 @@ function trimEnv(value: string | undefined): string {
   return value?.trim() ?? ''
 }
 
+function firstNonEmpty(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const trimmed = trimEnv(value)
+    if (trimmed) return trimmed
+  }
+  return ''
+}
+
+/** When `env` is omitted (production), overlay process.env then baked defaults. Tests pass `env` to isolate from the generated file. */
+function resolveOverlaySources(
+  env?: EnvLike,
+  baked?: EnvLike,
+): { runtime: EnvLike; defaults: EnvLike } {
+  const runtime = env ?? processEnv()
+  const defaults: EnvLike =
+    baked ?? (env === undefined ? ENTERPRISE_AI_BUILD_DEFAULTS : EMPTY_ENTERPRISE_AI_BUILD_DEFAULTS)
+  return { runtime, defaults }
+}
+
+function overlayField(runtime: EnvLike, defaults: EnvLike, key: string): string {
+  return firstNonEmpty(runtime[key], defaults[key])
+}
+
 /** Read the enterprise env overlay. Chat/media provider is always `custom`; search is Bocha. */
-export function readEnterpriseAiEnv(env?: EnvLike): {
+export function readEnterpriseAiEnv(
+  env?: EnvLike,
+  baked?: EnvLike | EnterpriseAiBuildDefaults,
+): {
   provider: typeof ENTERPRISE_LOCKED_PROVIDER
   baseUrl: string
   apiKey: string
@@ -97,23 +116,30 @@ export function readEnterpriseAiEnv(env?: EnvLike): {
   mediaBaseUrl: string
   searchApiKey: string
 } {
-  const source = env ?? processEnv()
-  const apiKey = trimEnv(source[GENOFFICE_AI_API_KEY_ENV])
-  const baseUrl = trimEnv(source[GENOFFICE_AI_BASE_URL_ENV])
+  const { runtime, defaults } = resolveOverlaySources(env, baked)
+  const apiKey = overlayField(runtime, defaults, GENOFFICE_AI_API_KEY_ENV)
+  const baseUrl = overlayField(runtime, defaults, GENOFFICE_AI_BASE_URL_ENV)
   return {
     provider: ENTERPRISE_LOCKED_PROVIDER,
     baseUrl,
     apiKey,
-    model: trimEnv(source[GENOFFICE_AI_MODEL_ENV]),
-    mediaApiKey: trimEnv(source[GENOFFICE_AI_MEDIA_API_KEY_ENV]) || apiKey,
-    mediaBaseUrl: trimEnv(source[GENOFFICE_AI_MEDIA_BASE_URL_ENV]) || baseUrl,
-    searchApiKey:
-      trimEnv(source[GENOFFICE_AI_SEARCH_API_KEY_ENV]) || trimEnv(source[BOCHA_API_KEY_ENV]),
+    model: overlayField(runtime, defaults, GENOFFICE_AI_MODEL_ENV),
+    mediaApiKey: overlayField(runtime, defaults, GENOFFICE_AI_MEDIA_API_KEY_ENV) || apiKey,
+    mediaBaseUrl: overlayField(runtime, defaults, GENOFFICE_AI_MEDIA_BASE_URL_ENV) || baseUrl,
+    searchApiKey: firstNonEmpty(
+      runtime[GENOFFICE_AI_SEARCH_API_KEY_ENV],
+      runtime[BOCHA_API_KEY_ENV],
+      defaults[GENOFFICE_AI_SEARCH_API_KEY_ENV],
+      defaults[BOCHA_API_KEY_ENV],
+    ),
   }
 }
 
-export function enterpriseAiPolicy(env?: EnvLike): EnterpriseAiPolicy {
-  const seeded = readEnterpriseAiEnv(env)
+export function enterpriseAiPolicy(
+  env?: EnvLike,
+  baked?: EnvLike | EnterpriseAiBuildDefaults,
+): EnterpriseAiPolicy {
+  const seeded = readEnterpriseAiEnv(env, baked)
   return {
     ...ENTERPRISE_AI_UI_POLICY,
     apiKey: seeded.apiKey,
@@ -123,39 +149,6 @@ export function enterpriseAiPolicy(env?: EnvLike): EnterpriseAiPolicy {
     mediaBaseUrl: seeded.mediaBaseUrl,
     searchApiKey: seeded.searchApiKey,
   }
-}
-
-/** Last-4 mask for Settings. Empty stays empty so ops can see that config is missing. */
-export function maskApiKey(apiKey: string | undefined): string {
-  const key = apiKey?.trim() ?? ''
-  if (!key) return ''
-  if (isMaskedApiKey(key)) return key
-  if (key.length <= 4) return '****'
-  return `****${key.slice(-4)}`
-}
-
-/** Display masks start with asterisks; a real key must never be persisted from one. */
-export function isMaskedApiKey(apiKey: string | undefined): boolean {
-  const key = apiKey?.trim() ?? ''
-  return key.length > 0 && key.startsWith('*')
-}
-
-export function filterAiProviderCatalog<T extends Pick<AiProviderMeta, 'id'>>(
-  catalog: readonly T[],
-): T[] {
-  return catalog.filter((entry) => entry.id === ENTERPRISE_LOCKED_PROVIDER)
-}
-
-export function filterAiMediaProviderCatalog<T extends Pick<AiMediaProviderMeta, 'id'>>(
-  catalog: readonly T[],
-): T[] {
-  return catalog.filter((entry) => entry.id === ENTERPRISE_LOCKED_MEDIA_PROVIDER)
-}
-
-export function filterAiSearchProviderCatalog<T extends Pick<AiSearchProviderMeta, 'id'>>(
-  catalog: readonly T[],
-): T[] {
-  return catalog.filter((entry) => entry.id === ENTERPRISE_LOCKED_SEARCH_PROVIDER)
 }
 
 function customSlot(settings?: {
@@ -234,8 +227,12 @@ function lockMediaSettings(
  * Env key and URL always win when set. Env chat model only fills an empty
  * slot so the Settings free-text field stays editable after a prefill.
  */
-export function applyEnterpriseAiPolicy(settings: AiSettings, env?: EnvLike): AiSettings {
-  const policy = enterpriseAiPolicy(env)
+export function applyEnterpriseAiPolicy(
+  settings: AiSettings,
+  env?: EnvLike,
+  baked?: EnvLike | EnterpriseAiBuildDefaults,
+): AiSettings {
+  const policy = enterpriseAiPolicy(env, baked)
   const current = customSlot(settings)
   const custom: AiProviderConfig = {
     ...current,
@@ -266,9 +263,14 @@ export function persistEnterpriseAiSettings(
   incoming: AiSettings,
   previous?: Pick<Partial<AiSettings>, 'providers' | 'media' | 'search'> | undefined,
   env?: EnvLike,
+  baked?: EnvLike | EnterpriseAiBuildDefaults,
 ): AiSettings {
-  const policy = enterpriseAiPolicy(env)
-  const next = applyEnterpriseAiPolicy({ ...incoming, provider: ENTERPRISE_LOCKED_PROVIDER }, env)
+  const policy = enterpriseAiPolicy(env, baked)
+  const next = applyEnterpriseAiPolicy(
+    { ...incoming, provider: ENTERPRISE_LOCKED_PROVIDER },
+    env,
+    baked,
+  )
   const incomingCustom = customSlot(incoming)
   const previousCustom = customSlot(previous)
   const apiKey = restoreReadOnlySecret(incomingCustom.apiKey, previousCustom.apiKey, policy.apiKey)
@@ -346,8 +348,9 @@ export function allowsKeylessChat(provider: AiProviderId): boolean {
 export function resolveLockedChatRequest(
   settings: AiSettings,
   env?: EnvLike,
+  baked?: EnvLike | EnterpriseAiBuildDefaults,
 ): { settings: AiSettings; provider: AiProviderId; config: AiProviderConfig } {
-  const effective = applyEnterpriseAiPolicy(settings, env)
+  const effective = applyEnterpriseAiPolicy(settings, env, baked)
   return {
     settings: effective,
     provider: ENTERPRISE_LOCKED_PROVIDER,

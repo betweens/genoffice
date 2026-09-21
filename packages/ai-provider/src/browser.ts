@@ -24,7 +24,7 @@ export {
   filterAiSearchProviderCatalog,
   isMaskedApiKey,
   maskApiKey,
-} from './enterprise-policy'
+} from './enterprise-ui'
 export { getProviderAdapter, modelLacksVision } from './registry'
 export { AI_MEDIA_PROVIDERS, imageGenerationAvailable, mediaAnalysisAvailable } from './media'
 export { AI_SEARCH_PROVIDERS } from './search-settings'

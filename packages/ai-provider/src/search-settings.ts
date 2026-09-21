@@ -1,4 +1,4 @@
-import { ENTERPRISE_LOCKED_SEARCH_PROVIDER, type EnvLike } from './enterprise-policy'
+import { ENTERPRISE_LOCKED_SEARCH_PROVIDER, type EnvLike } from './enterprise-ui'
 import type {
   AiSearchProviderId,
   AiSearchProviderMeta,

@@ -1,8 +1,5 @@
-import {
-  applyEnterpriseAiPolicy,
-  ENTERPRISE_LOCKED_PROVIDER,
-  type EnvLike,
-} from './enterprise-policy'
+import { applyEnterpriseAiPolicy } from './enterprise-policy'
+import { ENTERPRISE_LOCKED_PROVIDER, type EnvLike } from './enterprise-ui'
 import { defaultAiMediaSettings, resolveAiMediaSettings } from './media'
 import { defaultAiSearchSettings, resolveAiSearchSettings } from './search-settings'
 import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from './types'
@@ -307,8 +304,8 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
  * has no hardcoded keys.
  *
  * Enterprise fork: the selected chat provider is always `custom`. Env
- * (`GENOFFICE_AI_*`) seeds the custom slot when set. Genspark cloud tools
- * stay off.
+ * (`GENOFFICE_AI_*`) then packager-baked defaults seed the custom slot
+ * when set. Genspark cloud tools stay off.
  */
 export function defaultAiSettings(
   defaultApiKeys?: Partial<Record<AiProviderId, string>>,
@@ -438,7 +435,8 @@ function migrateRetiredModels(providers: AiSettings['providers']): AiSettings['p
  * settings file (already JSON-parsed); this function does no file I/O.
  *
  * Enterprise fork: the merged result is then locked to `custom` and seeded
- * from `GENOFFICE_AI_*` env (pass `env` in tests; production uses process.env).
+ * from `GENOFFICE_AI_*` env then baked packager defaults (pass `env` in
+ * tests; production uses process.env then `enterprise-defaults.generated.ts`).
  */
 export function resolveAiSettings(
   stored: Partial<AiSettings> & LegacyAiSettings,

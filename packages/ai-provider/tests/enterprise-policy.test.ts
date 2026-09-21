@@ -25,6 +25,7 @@ import {
 } from '../src/providers'
 import { AI_SEARCH_PROVIDERS } from '../src/search-settings'
 import type { AiSettings } from '../src/types'
+import { ENTERPRISE_AI_BUILD_DEFAULTS } from '../src/enterprise-defaults.generated'
 
 /** Tests never read the real process env — placeholders only. */
 const EMPTY_ENV = {}
@@ -34,6 +35,15 @@ const SEEDED_ENV = {
   GENOFFICE_AI_API_KEY: ' sk-enterprise-placeholder-1234 ',
   GENOFFICE_AI_MODEL: ' acme-chat ',
   GENOFFICE_AI_SEARCH_API_KEY: ' bocha-placeholder-5678 ',
+}
+const BAKED_DEFAULTS = {
+  GENOFFICE_AI_BASE_URL: 'https://llm.baked.internal/v1',
+  GENOFFICE_AI_API_KEY: 'sk-baked-placeholder-9999',
+  GENOFFICE_AI_MODEL: 'baked-chat',
+  GENOFFICE_AI_MEDIA_BASE_URL: '',
+  GENOFFICE_AI_MEDIA_API_KEY: '',
+  GENOFFICE_AI_SEARCH_API_KEY: 'bocha-baked-placeholder',
+  BOCHA_API_KEY: '',
 }
 
 function byokKimi(): AiSettings {
@@ -72,6 +82,92 @@ describe('readEnterpriseAiEnv', () => {
       mediaBaseUrl: '',
       searchApiKey: '',
     })
+  })
+
+  it('uses baked defaults when process.env overlay is empty', () => {
+    expect(readEnterpriseAiEnv(EMPTY_ENV, BAKED_DEFAULTS)).toEqual({
+      provider: 'custom',
+      baseUrl: 'https://llm.baked.internal/v1',
+      apiKey: 'sk-baked-placeholder-9999',
+      model: 'baked-chat',
+      mediaApiKey: 'sk-baked-placeholder-9999',
+      mediaBaseUrl: 'https://llm.baked.internal/v1',
+      searchApiKey: 'bocha-baked-placeholder',
+    })
+  })
+
+  it('lets process.env win over baked defaults', () => {
+    expect(
+      readEnterpriseAiEnv(
+        { GENOFFICE_AI_API_KEY: ' sk-runtime-placeholder ', GENOFFICE_AI_MODEL: 'runtime-chat' },
+        BAKED_DEFAULTS,
+      ),
+    ).toMatchObject({
+      apiKey: 'sk-runtime-placeholder',
+      model: 'runtime-chat',
+      baseUrl: 'https://llm.baked.internal/v1',
+      searchApiKey: 'bocha-baked-placeholder',
+    })
+  })
+
+  it('lets a runtime BOCHA_API_KEY win over a baked GENOFFICE_AI_SEARCH_API_KEY', () => {
+    expect(
+      readEnterpriseAiEnv({ BOCHA_API_KEY: ' bocha-runtime ' }, BAKED_DEFAULTS).searchApiKey,
+    ).toBe('bocha-runtime')
+  })
+
+  it('uses dedicated baked media url/key when set instead of the chat fallback', () => {
+    expect(
+      readEnterpriseAiEnv(EMPTY_ENV, {
+        ...BAKED_DEFAULTS,
+        GENOFFICE_AI_MEDIA_API_KEY: 'sk-media-baked',
+        GENOFFICE_AI_MEDIA_BASE_URL: 'https://media.baked.internal/v1',
+      }),
+    ).toMatchObject({
+      apiKey: 'sk-baked-placeholder-9999',
+      mediaApiKey: 'sk-media-baked',
+      mediaBaseUrl: 'https://media.baked.internal/v1',
+    })
+  })
+
+  it('seeds search from a baked BOCHA_API_KEY when GENOFFICE_AI_SEARCH_API_KEY is unset', () => {
+    expect(
+      readEnterpriseAiEnv(EMPTY_ENV, {
+        ...BAKED_DEFAULTS,
+        GENOFFICE_AI_SEARCH_API_KEY: '',
+        BOCHA_API_KEY: 'bocha-baked-alias',
+      }).searchApiKey,
+    ).toBe('bocha-baked-alias')
+  })
+
+  it('falls back to the generated module when env is omitted and process.env is empty', () => {
+    const names = [
+      'GENOFFICE_AI_BASE_URL',
+      'GENOFFICE_AI_API_KEY',
+      'GENOFFICE_AI_MODEL',
+      'GENOFFICE_AI_MEDIA_BASE_URL',
+      'GENOFFICE_AI_MEDIA_API_KEY',
+      'GENOFFICE_AI_SEARCH_API_KEY',
+      'BOCHA_API_KEY',
+    ] as const
+    const saved = Object.fromEntries(names.map((name) => [name, process.env[name]]))
+    for (const name of names) delete process.env[name]
+    try {
+      const seeded = readEnterpriseAiEnv()
+      expect(seeded.baseUrl).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_BASE_URL)
+      expect(seeded.apiKey).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_API_KEY)
+      expect(seeded.model).toBe(ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_MODEL)
+      expect(seeded.searchApiKey).toBe(
+        ENTERPRISE_AI_BUILD_DEFAULTS.GENOFFICE_AI_SEARCH_API_KEY ||
+          ENTERPRISE_AI_BUILD_DEFAULTS.BOCHA_API_KEY,
+      )
+    } finally {
+      for (const name of names) {
+        const value = saved[name]
+        if (value === undefined) delete process.env[name]
+        else process.env[name] = value
+      }
+    }
   })
 })
 
@@ -127,6 +223,22 @@ describe('applyEnterpriseAiPolicy', () => {
     expect(locked.search?.provider).toBe('bocha')
     expect(locked.search?.providers.bocha.apiKey).toBe('')
     expect(locked.media?.imageProvider).toBe('custom')
+  })
+
+  it('overlays baked defaults onto custom chat/media and Bocha when env is empty', () => {
+    const locked = applyEnterpriseAiPolicy(
+      defaultAiSettings(undefined, EMPTY_ENV),
+      EMPTY_ENV,
+      BAKED_DEFAULTS,
+    )
+    expect(locked.providers.custom).toMatchObject({
+      apiKey: 'sk-baked-placeholder-9999',
+      baseUrl: 'https://llm.baked.internal/v1',
+      model: 'baked-chat',
+    })
+    expect(locked.search?.providers.bocha.apiKey).toBe('bocha-baked-placeholder')
+    expect(locked.media?.providers.custom.apiKey).toBe('sk-baked-placeholder-9999')
+    expect(locked.media?.providers.custom.baseUrl).toBe('https://llm.baked.internal/v1')
   })
 
   it('prefills model from env only when the stored model is empty', () => {
@@ -215,6 +327,26 @@ describe('persistEnterpriseAiSettings', () => {
     expect(persisted.search?.provider).toBe('bocha')
     expect(persisted.search?.providers.bocha.apiKey).toBe('')
     expect(persisted.media?.imageProvider).toBe('custom')
+    expect(persisted.media?.providers.custom.apiKey).toBe('')
+    expect(persisted.media?.providers.custom.baseUrl).toBe('')
+  })
+
+  it('does not write baked defaults to the payload that hits disk', () => {
+    const incoming = applyEnterpriseAiPolicy(
+      defaultAiSettings(undefined, EMPTY_ENV),
+      EMPTY_ENV,
+      BAKED_DEFAULTS,
+    )
+    const persisted = persistEnterpriseAiSettings(
+      incoming,
+      { providers: {} as never },
+      EMPTY_ENV,
+      BAKED_DEFAULTS,
+    )
+    expect(persisted.providers.custom.apiKey).toBe('')
+    expect(persisted.providers.custom.baseUrl).toBe('')
+    expect(persisted.providers.custom.model).toBe('baked-chat')
+    expect(persisted.search?.providers.bocha.apiKey).toBe('')
     expect(persisted.media?.providers.custom.apiKey).toBe('')
     expect(persisted.media?.providers.custom.baseUrl).toBe('')
   })

@@ -11,6 +11,8 @@
     "./codex-app-server": "./src/codex-app-server.ts"
   },
   "scripts": {
+    "pretypecheck": "node ../../tools/generate-enterprise-defaults.mjs --empty",
+    "pretest": "node ../../tools/generate-enterprise-defaults.mjs --empty",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

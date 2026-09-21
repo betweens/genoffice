@@ -144,6 +144,30 @@ cargo build --release --target x86_64-pc-windows-gnu   # from apps/sheets/native
 or copy an existing `target/release/xlsx-sidecar.exe` to
 `target/x86_64-pc-windows-gnu/release/`.
 
+### Enterprise AI credentials (packaged builds)
+
+Double-clicking a packaged app does not inherit the packager's shell
+environment, so `GENOFFICE_AI_*` / `BOCHA_API_KEY` must be **exported on the
+packager machine or CI before** `npm run dist:mac|win|linux` (or
+`npm run build:all`). `tools/generate-enterprise-defaults.mjs` (root script
+`enterprise:defaults`, also `prebuild` on `@genoffice/shell`) writes
+gitignored `packages/ai-provider/src/enterprise-defaults.generated.ts`, which
+electron-vite bundles into the app.
+
+| Variable                                                     | Effect                                            |
+| ------------------------------------------------------------ | ------------------------------------------------- |
+| `GENOFFICE_AI_BASE_URL`                                      | OpenAI-compatible chat base URL (media fallback)  |
+| `GENOFFICE_AI_API_KEY`                                       | Chat API key (media fallback)                     |
+| `GENOFFICE_AI_MODEL`                                         | Prefills the chat model id when Settings has none |
+| `GENOFFICE_AI_MEDIA_BASE_URL` / `GENOFFICE_AI_MEDIA_API_KEY` | Optional media custom URL/key                     |
+| `GENOFFICE_AI_SEARCH_API_KEY` or `BOCHA_API_KEY`             | Bocha search key                                  |
+
+Runtime still prefers live `process.env` over the baked copy, then empty.
+`npm run dev` generates an empty file and keeps using the shell env.
+Do not put these keys only in `apps/shell/electron-builder.env` — that file
+is loaded after the JS bundle is compiled. Never commit the generated file;
+baked secrets are extractable from the asar (internal distribution only).
+
 ## Environment variables
 
 None are required — the apps run with all of these unset. They exist for

@@ -24,6 +24,14 @@
  * Official release jobs inject it through extraMetadata so the endpoint stays
  * out of source. Without it, font download prompts/catalog entries are hidden;
  * users can still install local font files.
+ *
+ * Enterprise AI zero-config (fork): GENOFFICE_AI_BASE_URL, GENOFFICE_AI_API_KEY,
+ * GENOFFICE_AI_MODEL, optional GENOFFICE_AI_MEDIA_* , and GENOFFICE_AI_SEARCH_API_KEY
+ * or BOCHA_API_KEY must be in the process environment BEFORE `npm run dist:*` /
+ * `npm run build:all`. `tools/generate-enterprise-defaults.mjs` bakes them into
+ * the JS bundle (electron-vite). `electron-builder.env` is loaded only when
+ * this file runs — too late for that bake. Baked secrets are extractable from
+ * the package; internal distribution only.
  */
 
 const { execFileSync } = require('node:child_process')
