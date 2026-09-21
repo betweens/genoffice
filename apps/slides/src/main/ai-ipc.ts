@@ -24,7 +24,10 @@ import {
   defaultAiSettings,
   activeProvider,
   maxOutputTokensOf,
+  persistEnterpriseAiSettings,
   resolveAiSettings,
+  resolveLockedChatRequest,
+  allowsKeylessChat,
   setAiUserAgent,
   setRescueFetch,
   streamForProvider,
@@ -110,7 +113,7 @@ export function registerAiIpc(): void {
   ipcMain.handle('ai:get-settings', (): AiSettings => {
     const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {})
     const settings = resolveAiSettings(stored, defaultAiSettings())
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to genspark
+    // enterprise fork: custom is the only chat provider; env overlays key/url
     settings.provider = activeProvider(settings)
     return settings
   })
@@ -131,7 +134,8 @@ export function registerAiIpc(): void {
   })
 
   ipcMain.handle('ai:set-settings', (_event, settings: AiSettings) => {
-    writeJson(AI_SETTINGS_PATH(), settings)
+    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(AI_SETTINGS_PATH(), {})
+    writeJson(AI_SETTINGS_PATH(), persistEnterpriseAiSettings(settings, stored))
   })
 
   ipcMain.handle('ai:log-run-failure', (_event, entry: AiRunFailure) => {
@@ -139,11 +143,11 @@ export function registerAiIpc(): void {
   })
 
   ipcMain.handle('ai:stream', async (event, request: AiStreamRequest) => {
-    const { requestId, settings, system, messages } = request
+    const { requestId, system, messages } = request
+    const { settings, provider, config: lockedConfig } = resolveLockedChatRequest(request.settings)
     const tools = request.tools ?? []
     const maxTokens = request.maxTokens ?? maxOutputTokensOf(settings)
-    const provider = settings.provider
-    let config = settings.providers?.[provider]
+    let config = lockedConfig
     // The genspark key never enters the settings file; it is fetched from the gsk login state per request
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
@@ -151,7 +155,7 @@ export function registerAiIpc(): void {
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send('ai:stream-chunk', chunk)
     }
-    if (!config || (provider !== 'codex' && !config.apiKey)) {
+    if (!config || (!allowsKeylessChat(provider) && !config.apiKey)) {
       send({
         requestId,
         type: 'error',

@@ -11,9 +11,12 @@ import {
 import type { AiFontSize, AiPanelPrefs, AiPanelSide } from '@genoffice/ui'
 import {
   DEFAULT_MAX_OUTPUT_TOKENS,
+  ENTERPRISE_AI_UI_POLICY,
+  ENTERPRISE_LOCKED_PROVIDER,
   MAX_MAX_OUTPUT_TOKENS,
   MIN_MAX_OUTPUT_TOKENS,
   clampMaxOutputTokens,
+  maskApiKey,
 } from '@genoffice/ai-provider/browser'
 import type {
   AiMediaProviderId,
@@ -297,7 +300,7 @@ function AiModelPane({ t }: { t: TFunc }) {
       if (s.provider === 'genspark' && s.gskToolsEnabled === false) {
         s = { ...s, gskToolsEnabled: true }
       }
-      setSettings(s)
+      setSettings({ ...s, provider: ENTERPRISE_LOCKED_PROVIDER })
       const codex = s.providers.codex
       if (codex) {
         void refreshCodexModels(codex.cliPath ?? '', codex.model).catch(() => undefined)
@@ -309,8 +312,8 @@ function AiModelPane({ t }: { t: TFunc }) {
   }, [refreshCodexModels])
 
   if (!settings) return null
-  const provider = settings.provider
-  const meta = catalog.find((c) => c.id === provider)
+  const provider = ENTERPRISE_LOCKED_PROVIDER
+  const meta = catalog.find((c) => c.id === provider) ?? catalog[0]
   const config = settings.providers[provider] ?? {
     apiKey: '',
     model: meta?.defaultModel ?? '',
@@ -319,6 +322,9 @@ function AiModelPane({ t }: { t: TFunc }) {
   }
   const isGenspark = provider === 'genspark'
   const isCodex = provider === 'codex'
+  const providerLocked = ENTERPRISE_AI_UI_POLICY.lockProvider
+  const keyReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyKey
+  const baseUrlReadOnly = ENTERPRISE_AI_UI_POLICY.readOnlyBaseUrl
 
   const touch = () => {
     setDirty(true)
@@ -342,6 +348,7 @@ function AiModelPane({ t }: { t: TFunc }) {
     touch()
   }
   const selectProvider = (id: AiSettings['provider']) => {
+    if (providerLocked && id !== ENTERPRISE_LOCKED_PROVIDER) return
     // cloud tools cannot be off with genspark (chat runs through gsk anyway)
     setSettings({
       ...settings,
@@ -389,9 +396,11 @@ function AiModelPane({ t }: { t: TFunc }) {
           className="set-dd"
           value={provider}
           ariaLabel={t('setAiProvider')}
+          disabled={providerLocked}
           options={catalog.map((c) => ({
             value: c.id,
             label: c.label,
+            disabled: c.id !== ENTERPRISE_LOCKED_PROVIDER,
             render: (
               <>
                 <ProviderLogo id={c.id} />
@@ -468,12 +477,16 @@ function AiModelPane({ t }: { t: TFunc }) {
             <input
               id="set-ai-key"
               className="set-input"
-              type="password"
-              value={config.apiKey}
+              type="text"
+              readOnly={keyReadOnly}
+              aria-readonly={keyReadOnly || undefined}
+              value={keyReadOnly ? maskApiKey(config.apiKey) : config.apiKey}
               placeholder={meta?.keyPlaceholder ?? 'API Key'}
               spellCheck={false}
               autoComplete="off"
-              onChange={(e) => updateConfig({ apiKey: e.target.value.trim() })}
+              onChange={
+                keyReadOnly ? undefined : (e) => updateConfig({ apiKey: e.target.value.trim() })
+              }
             />
           </div>
           <div className="set-field">
@@ -491,10 +504,16 @@ function AiModelPane({ t }: { t: TFunc }) {
               id="set-ai-base-url"
               className="set-input"
               type="text"
+              readOnly={baseUrlReadOnly}
+              aria-readonly={baseUrlReadOnly || undefined}
               value={config.baseUrl ?? ''}
               placeholder={meta?.needsBaseUrl ? 'https://…/v1' : meta?.defaultBaseUrl}
               spellCheck={false}
-              onChange={(e) => updateConfig({ baseUrl: e.target.value.trim() })}
+              onChange={
+                baseUrlReadOnly
+                  ? undefined
+                  : (e) => updateConfig({ baseUrl: e.target.value.trim() })
+              }
             />
           </div>
         </>

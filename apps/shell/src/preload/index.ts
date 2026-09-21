@@ -4,6 +4,7 @@ import {
   AI_MEDIA_PROVIDERS,
   AI_PROVIDERS,
   AI_SEARCH_PROVIDERS,
+  filterAiProviderCatalog,
   getProviderAdapter,
 } from '@genoffice/ai-provider/browser'
 import type { AiSettings, CodexModelCatalog } from '@genoffice/ai-provider/browser'
@@ -378,7 +379,7 @@ const homeApi: HomeApi = {
     await ipcRenderer.invoke('ai:set-settings', settings)
   },
   getAiProviders() {
-    return AI_PROVIDERS.map((meta) => {
+    return filterAiProviderCatalog(AI_PROVIDERS).map((meta) => {
       let defaultBaseUrl = ''
       // genspark routes by model and custom has no default — both stay ''
       if (meta.id !== 'genspark' && !meta.needsBaseUrl && !meta.needsCliPath) {

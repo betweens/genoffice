@@ -34,6 +34,25 @@ export {
   resolveAiSettings,
 } from './providers'
 export {
+  ENTERPRISE_AI_UI_POLICY,
+  ENTERPRISE_ALLOWED_PROVIDERS,
+  ENTERPRISE_LOCKED_PROVIDER,
+  GENOFFICE_AI_API_KEY_ENV,
+  GENOFFICE_AI_BASE_URL_ENV,
+  GENOFFICE_AI_MODEL_ENV,
+  GENOFFICE_AI_PROVIDER_ENV,
+  allowsKeylessChat,
+  applyEnterpriseAiPolicy,
+  enterpriseAiPolicy,
+  filterAiProviderCatalog,
+  isMaskedApiKey,
+  maskApiKey,
+  persistEnterpriseAiSettings,
+  readEnterpriseAiEnv,
+  resolveLockedChatRequest,
+} from './enterprise-policy'
+export type { EnterpriseAiPolicy, EnterpriseAiUiPolicy, EnvLike } from './enterprise-policy'
+export {
   AI_MEDIA_PROVIDERS,
   GEMINI_MEDIA_BASE_URL,
   OPENAI_IMAGES_BASE_URL,

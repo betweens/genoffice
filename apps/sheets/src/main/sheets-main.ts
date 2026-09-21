@@ -65,12 +65,14 @@ import {
   chatForProvider,
   defaultAiSettings,
   activeProvider,
+  allowsKeylessChat,
   maxOutputTokensOf,
+  persistEnterpriseAiSettings,
   resolveAiSettings,
+  resolveLockedChatRequest,
   setAiUserAgent,
   setRescueFetch,
   streamForProvider,
-  type AiProviderId,
   type AiSettings,
   type AiStreamChunk,
   type GenSparkAccountStatus,
@@ -3249,7 +3251,7 @@ export function registerSheetsAiIpc(): void {
     sessionFor(event)
     const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {})
     const settings = resolveAiSettings(stored, defaultAiSettings())
-    // a stored BYOK provider is honored when usable; half-filled configs fall back to genspark
+    // enterprise fork: custom is the only chat provider; env overlays key/url
     settings.provider = activeProvider(settings)
     return settings
   })
@@ -3273,18 +3275,21 @@ export function registerSheetsAiIpc(): void {
   ipcMain.handle(IPC_CHANNELS.aiSetSettings, (event, input: unknown) => {
     sessionFor(event)
     const settings = aiSettingsInputSchema.parse(input)
-    writeJson(SETTINGS_PATH(), settings)
+    const stored = readJson<Partial<AiSettings> & LegacyAiSettings>(SETTINGS_PATH(), {})
+    writeJson(SETTINGS_PATH(), persistEnterpriseAiSettings(settings as AiSettings, stored))
   })
 
   ipcMain.handle(IPC_CHANNELS.aiChat, async (event, input: unknown) => {
     sessionFor(event)
     const request = aiChatRequestSchema.parse(input)
-    const provider = request.settings.provider as AiProviderId
-    let config = request.settings.providers[provider]
+    const { provider, config: lockedConfig } = resolveLockedChatRequest(
+      request.settings as AiSettings,
+    )
+    let config = lockedConfig
     if (provider === 'genspark' && config && !config.apiKey) {
       config = { ...config, apiKey: gskApiKey() }
     }
-    if (!config || (provider !== 'codex' && !config.apiKey)) {
+    if (!config || (!allowsKeylessChat(provider) && !config.apiKey)) {
       return {
         ok: false,
         error: provider === 'genspark' ? tm('errGskNotLoggedIn') : tm('errNoApiKey', { provider }),
@@ -3308,10 +3313,14 @@ export function registerSheetsAiIpc(): void {
     const entry = sessionFor(event)
     const request = aiStreamRequestSchema.parse(input)
     const { requestId, system, messages } = request
+    const {
+      settings,
+      provider,
+      config: lockedConfig,
+    } = resolveLockedChatRequest(request.settings as AiSettings)
     const tools = request.tools ?? []
-    const maxTokens = request.maxTokens ?? maxOutputTokensOf(request.settings)
-    const provider = request.settings.provider as AiProviderId
-    let config = request.settings.providers[provider]
+    const maxTokens = request.maxTokens ?? maxOutputTokensOf(settings)
+    let config = lockedConfig
     // Genspark's key never enters the settings file; it is read from the gsk
     // login state per request
     if (provider === 'genspark' && config && !config.apiKey) {
@@ -3320,7 +3329,7 @@ export function registerSheetsAiIpc(): void {
     const send = (chunk: AiStreamChunk) => {
       if (!event.sender.isDestroyed()) event.sender.send(IPC_CHANNELS.aiStreamChunk, chunk)
     }
-    if (!config || (provider !== 'codex' && !config.apiKey)) {
+    if (!config || (!allowsKeylessChat(provider) && !config.apiKey)) {
       send({
         requestId,
         type: 'error',

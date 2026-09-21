@@ -1,3 +1,8 @@
+import {
+  applyEnterpriseAiPolicy,
+  ENTERPRISE_LOCKED_PROVIDER,
+  type EnvLike,
+} from './enterprise-policy'
 import { defaultAiMediaSettings, resolveAiMediaSettings } from './media'
 import { defaultAiSearchSettings, resolveAiSearchSettings } from './search-settings'
 import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from './types'
@@ -300,9 +305,13 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
  * except providers listed in `defaultApiKeys` (e.g. an app-specific
  * preconfigured Anthropic key). Callers own that policy; this package
  * has no hardcoded keys.
+ *
+ * Enterprise fork: the selected chat provider is always `custom`. Env
+ * (`GENOFFICE_AI_*`) seeds the custom slot when set.
  */
 export function defaultAiSettings(
   defaultApiKeys?: Partial<Record<AiProviderId, string>>,
+  env?: EnvLike,
 ): AiSettings {
   const providers = {} as AiSettings['providers']
   for (const meta of AI_PROVIDERS) {
@@ -313,13 +322,16 @@ export function defaultAiSettings(
       cliPath: meta.needsCliPath ? '' : undefined,
     }
   }
-  return {
-    provider: 'genspark',
-    providers,
-    gskToolsEnabled: true,
-    media: defaultAiMediaSettings(),
-    search: defaultAiSearchSettings(),
-  }
+  return applyEnterpriseAiPolicy(
+    {
+      provider: ENTERPRISE_LOCKED_PROVIDER,
+      providers,
+      gskToolsEnabled: true,
+      media: defaultAiMediaSettings(),
+      search: defaultAiSearchSettings(),
+    },
+    env,
+  )
 }
 
 /** false only on an explicit opt-out; absent (pre-toggle settings files) means on */
@@ -328,31 +340,13 @@ export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>)
 }
 
 /**
- * The stored provider selection is honored only when its config is usable
- * (api-key providers need a key and a model id; custom also needs a base URL).
- * Codex can auto-discover its executable. Anything else — including unknown
- * ids from a hand-edited
- * settings file — falls back to genspark, so a half-filled setup degrades
- * to the signed-in default instead of silently disabling AI.
+ * Enterprise fork: chat is locked to `custom`. A hand-edited settings file
+ * or a half-filled BYOK slot cannot fall back to Genspark / Claude / OpenAI.
+ * Usability of the custom slot (model + base URL) is left to the request
+ * path so ops see a missing-config error instead of a silent vendor switch.
  */
-export function activeProvider(settings: AiSettings): AiProviderId {
-  const provider = settings.provider
-  if (provider === 'genspark') return 'genspark'
-  const meta = AI_PROVIDERS.find((m) => m.id === provider)
-  const config = settings.providers?.[provider]
-  if (!meta || !config) return 'genspark'
-  if (meta.needsCliPath) return provider
-  // Trim-aware: in-memory settings bypass the trimConfigs applied to
-  // persisted files, and a whitespace-only key/URL/model is a 401, not a config.
-  if (!config.model?.trim()) return 'genspark'
-  if (meta.needsBaseUrl) {
-    // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
-    // anonymous requests: base URL + model suffice, the key stays optional.
-    if (!config.baseUrl?.trim()) return 'genspark'
-    return provider
-  }
-  if (!config.apiKey?.trim()) return 'genspark'
-  return provider
+export function activeProvider(settings: AiSettings, env?: EnvLike): AiProviderId {
+  return applyEnterpriseAiPolicy(settings, env).provider
 }
 
 /**
@@ -441,10 +435,14 @@ function migrateRetiredModels(providers: AiSettings['providers']): AiSettings['p
  * pre-provider shape (a single OpenAI-compatible endpoint) into the
  * "custom" provider slot. `stored` is whatever the caller read from its
  * settings file (already JSON-parsed); this function does no file I/O.
+ *
+ * Enterprise fork: the merged result is then locked to `custom` and seeded
+ * from `GENOFFICE_AI_*` env (pass `env` in tests; production uses process.env).
  */
 export function resolveAiSettings(
   stored: Partial<AiSettings> & LegacyAiSettings,
   defaults: AiSettings,
+  env?: EnvLike,
 ): AiSettings {
   if (!stored.providers) {
     if (stored.apiKey) {
@@ -454,22 +452,27 @@ export function resolveAiSettings(
         baseUrl: (stored.baseUrl ?? 'https://api.openai.com/v1').trim(),
       }
     }
-    return defaults
+    return applyEnterpriseAiPolicy(defaults, env)
   }
-  return {
-    provider: stored.provider ?? defaults.provider,
-    // Trim before migrating: a pasted " deepseek-reasoner " must still hit
-    // the retired-id remap instead of being sent to the API verbatim.
-    providers: migrateRetiredModels(trimConfigs({ ...defaults.providers, ...stored.providers })),
-    gskToolsEnabled: stored.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
-    media: resolveAiMediaSettings(stored.media ?? defaults.media),
-    search: resolveAiSearchSettings(stored.search ?? defaults.search),
-    // clamped on read: a hand-edited settings file with an absurd cap must not be
-    // forwarded to the endpoint verbatim
-    ...(stored.maxOutputTokens !== undefined || defaults.maxOutputTokens !== undefined
-      ? {
-          maxOutputTokens: clampMaxOutputTokens(stored.maxOutputTokens ?? defaults.maxOutputTokens),
-        }
-      : {}),
-  }
+  return applyEnterpriseAiPolicy(
+    {
+      provider: stored.provider ?? defaults.provider,
+      // Trim before migrating: a pasted " deepseek-reasoner " must still hit
+      // the retired-id remap instead of being sent to the API verbatim.
+      providers: migrateRetiredModels(trimConfigs({ ...defaults.providers, ...stored.providers })),
+      gskToolsEnabled: stored.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
+      media: resolveAiMediaSettings(stored.media ?? defaults.media),
+      search: resolveAiSearchSettings(stored.search ?? defaults.search),
+      // clamped on read: a hand-edited settings file with an absurd cap must not be
+      // forwarded to the endpoint verbatim
+      ...(stored.maxOutputTokens !== undefined || defaults.maxOutputTokens !== undefined
+        ? {
+            maxOutputTokens: clampMaxOutputTokens(
+              stored.maxOutputTokens ?? defaults.maxOutputTokens,
+            ),
+          }
+        : {}),
+    },
+    env,
+  )
 }

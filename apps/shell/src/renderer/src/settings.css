@@ -502,6 +502,13 @@
   border-color: var(--accent, var(--text-primary));
 }
 
+.set-input:read-only,
+.set-input:disabled {
+  color: var(--text-secondary);
+  background: var(--hover);
+  cursor: default;
+}
+
 .set-input::placeholder {
   color: var(--text-tertiary, var(--text-secondary));
 }

@@ -231,7 +231,8 @@ export interface HomeApi {
   getAiSettings(): Promise<AiSettings>
   /** persist AI settings; open editors pick the change up on their next settings read */
   setAiSettings(settings: AiSettings): Promise<void>
-  /** provider catalog with each fixed endpoint's default base URL (empty for genspark/custom) */
+  /** provider catalog with each fixed endpoint's default base URL (empty for genspark/custom).
+   * Enterprise fork: only Custom is returned; other vendors stay in the adapter map. */
   getAiProviders(): AiCatalogEntry[]
   /** live Codex model catalog discovered through the current or overridden app-server */
   getCodexModels(cliPath?: string): Promise<CodexModelCatalog>
