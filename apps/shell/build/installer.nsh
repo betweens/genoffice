@@ -21,6 +21,15 @@
   Call un.GenOfficeRemoveFromUserPath
 !macroend
 
+; electron-builder 26 only omits the Installation Mode page when perMachine is
+; true (all-users). The supported per-user-only hook is customInstallMode: it
+; runs in multiUserUi.nsh before the radio buttons are created and Abort skips
+; the page (see electron.build NSIS docs / electron-builder#4967).
+!macro customInstallMode
+  StrCpy $isForceCurrentInstall "1"
+  StrCpy $isForceMachineInstall "0"
+!macroend
+
 !ifndef BUILD_UNINSTALLER
 ${StrStr}
 

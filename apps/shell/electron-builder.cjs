@@ -566,8 +566,19 @@ const config = {
     afterInstall: 'build/linux-after-install.sh',
     afterRemove: 'build/linux-after-remove.sh',
   },
+  // Per-user assisted installer only. electron-builder 26 has no flag that
+  // hides the Installation Mode page for current-user (perMachine: true skips
+  // the page but forces all-users). allowElevation: false omits UAC elevation
+  // so a non-admin cannot pick all-users; packElevateHelper: false omits
+  // elevate.exe. customInstallMode in build/installer.nsh sets
+  // $isForceCurrentInstall so the page is skipped and all-users is never
+  // offered (electron-userland/electron-builder#4967). Directory change stays
+  // enabled under the per-user default ($LocalAppData\Programs).
   nsis: {
     oneClick: false,
+    perMachine: false,
+    allowElevation: false,
+    packElevateHelper: false,
     allowToChangeInstallationDirectory: true,
   },
   beforePack: async (context) => {
