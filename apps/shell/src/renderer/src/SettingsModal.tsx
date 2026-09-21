@@ -151,10 +151,13 @@ function CustomFontSizeInput({
   )
 }
 
-type SectionId =
+export type SectionId =
   'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'system' | 'proxy' | 'about'
 
-const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
+/** enterprise: hide Settings → Account (login / credits). Flip to restore. */
+export const ENTERPRISE_HIDE_ACCOUNT = true
+
+const ALL_SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'account', labelKey: 'setSecAccount' },
   { id: 'aiModel', labelKey: 'setSecAiModel' },
   { id: 'aiMedia', labelKey: 'setSecAiMedia' },
@@ -164,6 +167,20 @@ const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'proxy', labelKey: 'setSecProxy' },
   { id: 'about', labelKey: 'setSecAbout' },
 ]
+
+const SECTIONS = ENTERPRISE_HIDE_ACCOUNT
+  ? ALL_SECTIONS.filter((s) => s.id !== 'account')
+  : ALL_SECTIONS
+
+/** First visible pane — AccountEntry must not land on a hidden Account section. */
+export function defaultSettingsSection(): SectionId {
+  return SECTIONS[0]?.id ?? 'aiModel'
+}
+
+function resolveSettingsSection(id: SectionId | undefined): SectionId {
+  if (id && SECTIONS.some((s) => s.id === id)) return id
+  return defaultSettingsSection()
+}
 
 function SectionIcon({ id }: { id: SectionId }) {
   if (id === 'aiModel') {
@@ -1323,6 +1340,8 @@ export interface SettingsModalProps {
   /** an installed skill is older than the bundled one: dot on the Integrations entry */
   skillUpdateDue?: boolean
   onSkillUpdateDue?: (due: boolean) => void
+  /** which pane to show first; hidden ids (e.g. account) fall back to the first visible section */
+  initialSection?: SectionId
 }
 
 export function SettingsModal({
@@ -1338,9 +1357,10 @@ export function SettingsModal({
   onLogout,
   skillUpdateDue: updateDue = false,
   onSkillUpdateDue,
+  initialSection,
 }: SettingsModalProps) {
   const { lang, setLang, t, dateLocale } = useI18n()
-  const [section, setSection] = useState<SectionId>('account')
+  const [section, setSection] = useState<SectionId>(() => resolveSettingsSection(initialSection))
   const [theme, setTheme] = useState<UiTheme>('system')
   const [saveDir, setSaveDir] = useState('')
   const [analyticsOn, setAnalyticsOn] = useState(true)
@@ -1450,7 +1470,8 @@ export function SettingsModal({
             ))}
           </nav>
           <div className="set-pane">
-            {section === 'account' && (
+            {/* enterprise: Account pane hidden — restore with ENTERPRISE_HIDE_ACCOUNT = false */}
+            {!ENTERPRISE_HIDE_ACCOUNT && section === 'account' && (
               <>
                 <h3 className="set-pane-title">{t('setSecAccount')}</h3>
                 <Field label={t('setEmail')} value={loggedIn ? email : t('setNotLoggedIn')} />

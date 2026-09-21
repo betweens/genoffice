@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import type { AccountStatus } from '../../shared/home-api'
 import { skillUpdateDue } from './IntegrationsPane'
 import { useI18n } from './locale'
-import { SettingsModal } from './SettingsModal'
+import { defaultSettingsSection, SettingsModal } from './SettingsModal'
 import { useSystemUsername } from './useSystemUsername'
 
 // ── Account entry (bottom-left) ──────────────────────────
 // Genspark (gsk) login plus the enterprise OS identity. Clicking opens
-// SettingsModal (login/logout, language, theme, save location, proxy).
+// SettingsModal on the first visible section (Account is enterprise-hidden).
 
 const LOGIN_POLL_MS = 2500
 /** fallback deadline when the CLI does not report expires_in (device codes live ~300s) */
@@ -220,6 +220,7 @@ export function AccountEntry({
           onLogout={doLogout}
           skillUpdateDue={skillUpdate}
           onSkillUpdateDue={setSkillUpdate}
+          initialSection={defaultSettingsSection()}
         />
       )}
       {!settingsOpen && waiting && authUrl && (
