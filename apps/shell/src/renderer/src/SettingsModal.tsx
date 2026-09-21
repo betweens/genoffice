@@ -1161,6 +1161,9 @@ function AiMediaPane({ t }: { t: TFunc }) {
           ? !!m.analysisProtocol && m.videoAnalysis
           : !!m.analysisProtocol,
     )
+    // Enterprise lock is always Custom (`videoAnalysis: false`) and the catalog
+    // is filtered to that one vendor, so skip the empty video-analysis block.
+    if (cap === 'video' && options.length === 0) return null
     const id = ENTERPRISE_LOCKED_MEDIA_PROVIDER
     const meta =
       mediaCatalog.find((m) => m.id === id) ?? options.find((m) => m.id === id) ?? options[0]!

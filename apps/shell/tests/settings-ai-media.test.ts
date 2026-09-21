@@ -87,50 +87,61 @@ function bakedMediaSettings(): AiSettings {
   }
 }
 
+async function openAiMediaPane(): Promise<void> {
+  await act(async () => {
+    root.render(
+      createElement(
+        LocaleProvider,
+        { initial: 'en' },
+        createElement(SettingsModal, {
+          status: null,
+          loggingOut: false,
+          loginWaiting: false,
+          loginUrl: null,
+          urlCopied: false,
+          onOpenLoginUrl: vi.fn(),
+          onCopyLoginUrl: vi.fn(),
+          onClose: vi.fn(),
+          onLogin: vi.fn(),
+          onLogout: vi.fn(),
+        }),
+      ),
+    )
+    await Promise.resolve()
+  })
+  await flush()
+
+  const mediaNav = Array.from(host.querySelectorAll<HTMLButtonElement>('.set-nav-item')).find(
+    (button) => button.textContent?.includes('AI Media'),
+  )
+  await click(mediaNav)
+  await flush()
+}
+
+function mockAiOffice(settings: AiSettings = bakedMediaSettings()): void {
+  window.aiOffice = {
+    getTheme: async () => 'system',
+    getDefaultSaveDir: async () => '',
+    getAnalyticsEnabled: async () => true,
+    getAutoSaveDefault: async () => ({ on: false, updatedAt: 0 }),
+    getAiPanelPrefs: async () => ({ fontSize: 'default', spellcheck: true }),
+    getUpdateChannel: async () => 'stable',
+    getAppVersion: async () => '1.0.0',
+    githubStars: async () => null,
+    getAiSettings: async () => settings,
+    getAiMediaProviders: () => filterAiMediaProviderCatalog(AI_MEDIA_PROVIDERS),
+    getAiSearchProviders: () => filterAiSearchProviderCatalog(AI_SEARCH_PROVIDERS),
+  } as unknown as HomeApi
+}
+
+function paneSubtitles(): string[] {
+  return Array.from(host.querySelectorAll('.set-pane-subtitle')).map((el) => el.textContent ?? '')
+}
+
 describe('Settings AI Media pane', () => {
   it('shows baked Custom image/analysis models as read-only when other media fields are locked', async () => {
-    window.aiOffice = {
-      getTheme: async () => 'system',
-      getDefaultSaveDir: async () => '',
-      getAnalyticsEnabled: async () => true,
-      getAutoSaveDefault: async () => ({ on: false, updatedAt: 0 }),
-      getAiPanelPrefs: async () => ({ fontSize: 'default', spellcheck: true }),
-      getUpdateChannel: async () => 'stable',
-      getAppVersion: async () => '1.0.0',
-      githubStars: async () => null,
-      getAiSettings: async () => bakedMediaSettings(),
-      getAiMediaProviders: () => filterAiMediaProviderCatalog(AI_MEDIA_PROVIDERS),
-      getAiSearchProviders: () => filterAiSearchProviderCatalog(AI_SEARCH_PROVIDERS),
-    } as unknown as HomeApi
-
-    await act(async () => {
-      root.render(
-        createElement(
-          LocaleProvider,
-          { initial: 'en' },
-          createElement(SettingsModal, {
-            status: null,
-            loggingOut: false,
-            loginWaiting: false,
-            loginUrl: null,
-            urlCopied: false,
-            onOpenLoginUrl: vi.fn(),
-            onCopyLoginUrl: vi.fn(),
-            onClose: vi.fn(),
-            onLogin: vi.fn(),
-            onLogout: vi.fn(),
-          }),
-        ),
-      )
-      await Promise.resolve()
-    })
-    await flush()
-
-    const mediaNav = Array.from(host.querySelectorAll<HTMLButtonElement>('.set-nav-item')).find(
-      (button) => button.textContent?.includes('AI Media'),
-    )
-    await click(mediaNav)
-    await flush()
+    mockAiOffice()
+    await openAiMediaPane()
 
     const image = host.querySelector<HTMLInputElement>('#set-ai-image-model')
     const analysis = host.querySelector<HTMLInputElement>('#set-ai-analysis-model')
@@ -138,6 +149,17 @@ describe('Settings AI Media pane', () => {
     expect(analysis?.value).toBe('qwen3-vl')
     expect(image?.readOnly).toBe(true)
     expect(analysis?.readOnly).toBe(true)
-    expect(host.querySelector<HTMLInputElement>('#set-ai-video-model')?.value).toBe('qwen3-vl')
+  })
+
+  it('hides video analysis when enterprise-locked Custom has no video-capable model', async () => {
+    mockAiOffice()
+    await openAiMediaPane()
+
+    expect(paneSubtitles()).toEqual(['Web search', 'Image generation', 'Image analysis'])
+    expect(host.querySelector('#set-ai-search-key')).toBeTruthy()
+    expect(host.querySelector('#set-ai-image-model')).toBeTruthy()
+    expect(host.querySelector('#set-ai-analysis-model')).toBeTruthy()
+    expect(host.querySelector('#set-ai-video-model')).toBeNull()
+    expect(host.textContent).not.toContain('Video analysis')
   })
 })
