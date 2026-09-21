@@ -10,7 +10,8 @@ interface ProxyPasswordDialogProps {
 
 /**
  * Blocking first-launch gate: ask for the corporate proxy password when none
- * is stored yet. Username / host / port reuse Settings → 网络代理 defaults.
+ * is stored yet. Username / host / port reuse Settings → 网络代理 defaults;
+ * host and port are not shown in this dialog.
  */
 export function ProxyPasswordDialog({ onSaved }: ProxyPasswordDialogProps) {
   const { t } = useI18n()
@@ -94,12 +95,6 @@ export function ProxyPasswordDialog({ onSaved }: ProxyPasswordDialogProps) {
             autoComplete="username"
           />
         </label>
-        <div className="proxy-gate-field">
-          <span className="proxy-gate-label">{t('setProxyHost')}</span>
-          <span className="proxy-gate-static" data-testid="proxy-gate-endpoint">
-            {host}:{port}
-          </span>
-        </div>
         <label className="proxy-gate-field" htmlFor="proxy-gate-pass">
           <span className="proxy-gate-label">{t('setProxyPassword')}</span>
           <input

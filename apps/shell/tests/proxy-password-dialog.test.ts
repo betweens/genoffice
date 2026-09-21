@@ -79,15 +79,15 @@ async function typeInto(input: HTMLInputElement, text: string): Promise<void> {
 }
 
 describe('proxy password startup gate', () => {
-  it('shows the OS username as read-only and the default host:port', async () => {
+  it('shows the OS username as read-only and hides the default host:port', async () => {
     await renderDialog()
     const user = host.querySelector<HTMLInputElement>('#proxy-gate-user')
     expect(user?.value).toBe('alice')
     expect(user?.readOnly).toBe(true)
     expect(user?.value).not.toBe('humingfei')
-    expect(host.querySelector('[data-testid="proxy-gate-endpoint"]')?.textContent).toBe(
-      'webproxy.cn.vwgroup.com:8080',
-    )
+    expect(host.querySelector('[data-testid="proxy-gate-endpoint"]')).toBeNull()
+    expect(host.textContent).not.toContain('webproxy.cn.vwgroup.com')
+    expect(host.textContent).not.toContain('Host')
     expect(host.querySelector('#proxy-gate-pass')?.getAttribute('type')).toBe('password')
   })
 
@@ -124,6 +124,8 @@ describe('proxy password startup gate', () => {
     expect(host.textContent).toContain('保存并继续')
     expect(host.textContent).toContain('用户名')
     expect(host.textContent).toContain('密码')
+    expect(host.textContent).not.toContain('主机')
+    expect(host.textContent).not.toContain('webproxy.cn.vwgroup.com')
   })
 
   it('shows a generic error when save fails and never echoes the password', async () => {
