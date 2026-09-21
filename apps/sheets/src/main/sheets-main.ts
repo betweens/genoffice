@@ -26,6 +26,7 @@ import {
   shell,
   systemPreferences,
   WebContentsView,
+  safeStorage,
 } from 'electron'
 import type {
   IpcMainInvokeEvent,
@@ -44,6 +45,7 @@ import {
   installContextMenu,
   installNavigationGuard,
   printHtmlToPdf,
+  corporateProxyUrlFromSettings,
   safeExternalUrl,
   showOpenDialogWithMemory,
   showSaveDialogWithMemory,
@@ -89,7 +91,7 @@ import {
   gskApiKey,
   gskLoginInfo,
   hasGskAuth,
-  setGskProxyUrl,
+  installFetchProxy,
   webSearchTool,
   imageSearchTool,
   generateImageTool,
@@ -4124,22 +4126,33 @@ export {
  * slides-main.applyMainProcessProxy): main-process Node fetch (undici) ignores
  * the system proxy by default, so direct connections from mainland networks to
  * overseas LLM endpoints like api.anthropic.com time out or get rejected by
- * egress region (403 Request not allowed). Environment variables take priority;
- * otherwise the system proxy is read via session.resolveProxy() after app ready.
+ * egress region (403 Request not allowed). Saved Settings proxy takes
+ * priority, then environment variables, then session.resolveProxy().
  */
+function savedSettingsProxyUrl(): string | null {
+  try {
+    const raw: unknown = JSON.parse(
+      readFileSync(join(app.getPath('userData'), 'app-settings.json'), 'utf8'),
+    )
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+    return corporateProxyUrlFromSettings(raw as Record<string, unknown>, (cipher) => {
+      try {
+        if (!safeStorage.isEncryptionAvailable()) return null
+        return safeStorage.decryptString(Buffer.from(cipher, 'base64'))
+      } catch {
+        return null
+      }
+    })
+  } catch {
+    return null
+  }
+}
+
 async function applyMainProcessProxy(): Promise<void> {
-  const setDispatcher = async (proxyUrl: string) => {
-    // spawned gsk CLI children do their own fetch and never see the
-    // dispatcher below — forward the proxy to them via env
-    setGskProxyUrl(proxyUrl)
-    try {
-      const { ProxyAgent, setGlobalDispatcher } = await import('undici')
-      setGlobalDispatcher(new ProxyAgent(proxyUrl))
-      // strip user:pass credentials before logging
-      console.log('[proxy] main-process fetch via', proxyUrl.replace(/\/\/[^@/]*@/, '//***@'))
-    } catch (e) {
-      console.warn('[proxy] failed to set ProxyAgent:', e)
-    }
+  const saved = savedSettingsProxyUrl()
+  if (saved) {
+    await installFetchProxy(saved)
+    return
   }
   const envProxy =
     process.env.HTTPS_PROXY ||
@@ -4149,7 +4162,7 @@ async function applyMainProcessProxy(): Promise<void> {
     process.env.ALL_PROXY ||
     process.env.all_proxy
   if (envProxy) {
-    await setDispatcher(envProxy)
+    await installFetchProxy(envProxy)
     return
   }
   try {
@@ -4159,7 +4172,7 @@ async function applyMainProcessProxy(): Promise<void> {
     const resolved = await electronSession.defaultSession.resolveProxy('https://www.genspark.ai/')
     const m = /PROXY\s+([^;]+)/i.exec(resolved || '')
     if (m?.[1]) {
-      await setDispatcher(`http://${m[1].trim()}`)
+      await installFetchProxy(`http://${m[1].trim()}`)
     } else {
       console.log('[proxy] system proxy = DIRECT, no dispatcher set')
     }

@@ -1,7 +1,7 @@
 import os from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { EMPTY_SYSTEM_INFO, parseSystemInfo } from '../src/shared/home-api'
-import { collectSystemInfo } from '../src/main/system-info'
+import { collectSystemInfo, systemUsername } from '../src/main/system-info'
 import { formatMemory, formatOsDisplay } from '../src/renderer/src/system-info-format'
 
 describe('collectSystemInfo', () => {
@@ -21,7 +21,8 @@ describe('collectSystemInfo', () => {
     expect(info.osRelease).toBe(os.release())
     expect(info.osVersion).toBe('14.5.0')
     expect(info.arch).toBe(os.arch())
-    expect(info.username.length).toBeGreaterThan(0)
+    expect(info.username).toBe(systemUsername())
+    expect(info.username).not.toBe('humingfei')
     expect(info.homedir).toBe(os.homedir())
     expect(info.appVersion).toBe('0.10.0-test')
     expect(info.electronVersion).toBe('43.3.0')

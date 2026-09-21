@@ -25,7 +25,7 @@ import type {
   RenameResult,
   UiLanguage,
 } from '../shared/home-api'
-import { HOME_CHANNELS, parseSystemInfo } from '../shared/home-api'
+import { HOME_CHANNELS, parseProxySettings, parseSystemInfo } from '../shared/home-api'
 import { INTEGRATIONS_CHANNELS } from '../shared/integrations-api'
 import type {
   IntegrationsApi,
@@ -209,6 +209,25 @@ const homeApi: HomeApi = {
   async getSystemInfo() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getSystemInfo)
     return parseSystemInfo(result)
+  },
+  async getProxySettings() {
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.getProxySettings)
+    return parseProxySettings(result)
+  },
+  async setProxySettings(settings) {
+    if (!settings || typeof settings !== 'object') throw new Error('Invalid proxy settings.')
+    const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.setProxySettings, settings)
+    return parseProxySettings(result)
+  },
+  async testProxySettings(settings) {
+    if (!settings || typeof settings !== 'object') throw new Error('Invalid proxy settings.')
+    const raw = ((await ipcRenderer.invoke(HOME_CHANNELS.testProxySettings, settings)) ?? {}) as {
+      ok?: unknown
+      error?: unknown
+    }
+    return raw.ok === true
+      ? { ok: true }
+      : { ok: false, error: typeof raw.error === 'string' ? raw.error : 'Connection failed' }
   },
   async onboardingSeen() {
     const result: unknown = await ipcRenderer.invoke(HOME_CHANNELS.onboardingSeen)

@@ -11,6 +11,7 @@ import type {
 } from '@genoffice/ai-provider'
 import type { UpdateChannel } from './update-api'
 import type { AiPanelPrefs } from '@genoffice/ui/ai-panel-prefs'
+import { DEFAULT_PROXY_HOST, DEFAULT_PROXY_PORT } from '@genoffice/electron-utils/corporate-proxy'
 
 /** UI language; kept self-contained here (mirrors Lang in @genoffice/i18n) */
 export type UiLanguage =
@@ -62,6 +63,52 @@ export interface SystemInfo {
   cpuModel: string
   cpuCores: number
   totalMemoryBytes: number
+}
+
+/** corporate HTTP proxy shown in Settings → Proxy (password never logged) */
+export interface ProxySettings {
+  enabled: boolean
+  username: string
+  /** decrypted password for the settings field; empty when none is stored */
+  password: string
+  host: string
+  port: number
+  /** generated URL with the password replaced by **** */
+  maskedUrl: string
+  /** how the password is persisted in userData */
+  passwordEncryption: 'safeStorage' | 'plaintext' | 'none'
+}
+
+export const EMPTY_PROXY_SETTINGS: ProxySettings = {
+  enabled: true,
+  username: '',
+  password: '',
+  host: DEFAULT_PROXY_HOST,
+  port: DEFAULT_PROXY_PORT,
+  maskedUrl: '',
+  passwordEncryption: 'none',
+}
+
+export function parseProxySettings(value: unknown): ProxySettings {
+  if (!value || typeof value !== 'object') return { ...EMPTY_PROXY_SETTINGS }
+  const v = value as Record<string, unknown>
+  const encryption =
+    v.passwordEncryption === 'safeStorage' || v.passwordEncryption === 'plaintext'
+      ? v.passwordEncryption
+      : 'none'
+  const port =
+    typeof v.port === 'number' && Number.isInteger(v.port) && v.port > 0 && v.port < 65536
+      ? v.port
+      : EMPTY_PROXY_SETTINGS.port
+  return {
+    enabled: v.enabled === true,
+    username: typeof v.username === 'string' ? v.username : '',
+    password: typeof v.password === 'string' ? v.password : '',
+    host: typeof v.host === 'string' && v.host.trim() ? v.host : EMPTY_PROXY_SETTINGS.host,
+    port,
+    maskedUrl: typeof v.maskedUrl === 'string' ? v.maskedUrl : '',
+    passwordEncryption: encryption,
+  }
 }
 
 export const EMPTY_SYSTEM_INFO: SystemInfo = {
@@ -240,6 +287,24 @@ export interface HomeApi {
   getAppVersion(): Promise<string>
   /** read-only local machine / OS / user summary for Settings → This computer */
   getSystemInfo(): Promise<SystemInfo>
+  /** corporate HTTP proxy (userData/app-settings.json; password via safeStorage when available) */
+  getProxySettings(): Promise<ProxySettings>
+  /** persist + apply the proxy to main-process outbound HTTP(S) */
+  setProxySettings(settings: {
+    enabled: boolean
+    username: string
+    password: string
+    host: string
+    port: number
+  }): Promise<ProxySettings>
+  /** one-shot CONNECT/HTTPS probe through the given (possibly unsaved) proxy */
+  testProxySettings(settings: {
+    enabled?: boolean
+    username: string
+    password: string
+    host: string
+    port: number
+  }): Promise<{ ok: boolean; error?: string }>
   /** whether the first-run onboarding has been completed or skipped (persisted in userData/app-settings.json) */
   onboardingSeen(): Promise<boolean>
   /** mark onboarding done; analytics remains enabled unless separately opted out */
@@ -485,6 +550,9 @@ export const HOME_CHANNELS = {
   accountLogout: 'home:account-logout',
   getAppVersion: 'home:get-app-version',
   getSystemInfo: 'home:get-system-info',
+  getProxySettings: 'home:get-proxy-settings',
+  setProxySettings: 'home:set-proxy-settings',
+  testProxySettings: 'home:test-proxy-settings',
   onboardingSeen: 'home:onboarding-seen',
   setOnboardingSeen: 'home:set-onboarding-seen',
   getTheme: 'home:get-theme',

@@ -30,10 +30,17 @@ import type {
 } from '@genoffice/ai-provider'
 import { useI18n } from './locale'
 import type { StringKey, TFunc } from './locale'
-import type { AccountStatus, AiCatalogEntry, SystemInfo, UiTheme } from '../../shared/home-api'
+import type {
+  AccountStatus,
+  AiCatalogEntry,
+  ProxySettings,
+  SystemInfo,
+  UiTheme,
+} from '../../shared/home-api'
 import { ProviderLogo } from './provider-logos'
 import { IntegrationsPane, skillUpdateDue } from './IntegrationsPane'
 import { formatMemory, formatOsDisplay } from './system-info-format'
+import { buildProxyUrl, maskProxyUrl } from '@genoffice/electron-utils/corporate-proxy'
 import './settings.css'
 
 // ── Settings modal (opened from the account menu) ─────────
@@ -144,7 +151,8 @@ function CustomFontSizeInput({
   )
 }
 
-type SectionId = 'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'system' | 'about'
+type SectionId =
+  'account' | 'aiModel' | 'aiMedia' | 'general' | 'integrations' | 'system' | 'proxy' | 'about'
 
 const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'account', labelKey: 'setSecAccount' },
@@ -153,6 +161,7 @@ const SECTIONS: readonly { id: SectionId; labelKey: StringKey }[] = [
   { id: 'general', labelKey: 'setSecGeneral' },
   { id: 'integrations', labelKey: 'setSecIntegrations' },
   { id: 'system', labelKey: 'setSecSystem' },
+  { id: 'proxy', labelKey: 'setSecProxy' },
   { id: 'about', labelKey: 'setSecAbout' },
 ]
 
@@ -243,6 +252,19 @@ function SectionIcon({ id }: { id: SectionId }) {
           strokeWidth="1.3"
         />
         <path d="M5.5 14h5M8 11v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (id === 'proxy') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.3" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M2.2 8h11.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <path
+          d="M8 1.7c2.4 2.2 2.4 10.4 0 12.6M8 1.7C5.6 3.9 5.6 12.1 8 14.3"
+          stroke="currentColor"
+          strokeWidth="1.3"
+        />
       </svg>
     )
   }
@@ -365,6 +387,213 @@ function SystemInfoPane({ t, dateLocale }: { t: TFunc; dateLocale: string }) {
       <div className="set-pane-footer">
         <button className="set-btn" disabled={!info} onClick={copyAll}>
           {copied ? t('setMcpCopied') : t('setSysCopyAll')}
+        </button>
+      </div>
+    </>
+  )
+}
+
+function ProxyPane({ t }: { t: TFunc }) {
+  const [draft, setDraft] = useState<{
+    enabled: boolean
+    username: string
+    password: string
+    host: string
+    port: number
+  } | null>(null)
+  const [encryption, setEncryption] = useState<ProxySettings['passwordEncryption']>('none')
+  const [dirty, setDirty] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    void window.aiOffice.getProxySettings?.().then((s) => {
+      if (!alive || !s) return
+      setDraft({
+        enabled: s.enabled,
+        username: s.username,
+        password: s.password,
+        host: s.host,
+        port: s.port,
+      })
+      setEncryption(s.passwordEncryption)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  if (!draft) return null
+
+  const generatedUrl = buildProxyUrl(draft)
+  const maskedUrl = generatedUrl ? maskProxyUrl(generatedUrl) : ''
+
+  const touch = () => {
+    setDirty(true)
+    setSaved(false)
+    setTestResult(null)
+  }
+  const patch = (next: Partial<typeof draft>) => {
+    setDraft({ ...draft, ...next })
+    touch()
+  }
+
+  const save = () => {
+    window.aiOffice
+      .setProxySettings?.(draft)
+      .then((next) => {
+        setDraft({
+          enabled: next.enabled,
+          username: next.username,
+          password: next.password,
+          host: next.host,
+          port: next.port,
+        })
+        setEncryption(next.passwordEncryption)
+        setDirty(false)
+        setSaved(true)
+        setTestResult(null)
+      })
+      .catch((error) => {
+        window.alert(error instanceof Error ? error.message : String(error))
+      })
+  }
+
+  const test = () => {
+    if (!draft.username.trim() || !draft.password) {
+      setTestResult({ ok: false, error: t('setProxyTestNeedCreds') })
+      return
+    }
+    setTesting(true)
+    setTestResult(null)
+    window.aiOffice
+      .testProxySettings?.(draft)
+      .then((r) => setTestResult(r ?? { ok: false }))
+      .catch((error) =>
+        setTestResult({ ok: false, error: error instanceof Error ? error.message : String(error) }),
+      )
+      .finally(() => setTesting(false))
+  }
+
+  return (
+    <>
+      <h3 className="set-pane-title">{t('setSecProxy')}</h3>
+      <div className="set-field-desc set-ai-note">{t('setProxyDesc')}</div>
+      <div className="set-field">
+        <div className="set-field-text">
+          <div className="set-field-stack">
+            <div className="set-field-label">{t('setProxyEnabled')}</div>
+            <div className="set-field-desc">{t('setProxyEnabledDesc')}</div>
+          </div>
+        </div>
+        <button
+          className="set-switch"
+          role="switch"
+          aria-checked={draft.enabled}
+          aria-label={t('setProxyEnabled')}
+          onClick={() => patch({ enabled: !draft.enabled })}
+        />
+      </div>
+      <div className="set-field">
+        <div className="set-field-text">
+          <div className="set-field-stack">
+            <label className="set-field-label" htmlFor="set-proxy-user">
+              {t('setProxyUsername')}
+            </label>
+            <div className="set-field-desc">{t('setProxyUsernameHint')}</div>
+          </div>
+        </div>
+        <input
+          id="set-proxy-user"
+          className="set-input"
+          type="text"
+          value={draft.username}
+          spellCheck={false}
+          autoComplete="username"
+          onChange={(e) => patch({ username: e.target.value })}
+        />
+      </div>
+      <div className="set-field">
+        <div className="set-field-text">
+          <div className="set-field-stack">
+            <label className="set-field-label" htmlFor="set-proxy-pass">
+              {t('setProxyPassword')}
+            </label>
+            <div className="set-field-desc">{t('setProxyPasswordHint')}</div>
+          </div>
+        </div>
+        <input
+          id="set-proxy-pass"
+          className="set-input"
+          type="password"
+          value={draft.password}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(e) => patch({ password: e.target.value })}
+        />
+      </div>
+      <div className="set-field">
+        <div className="set-field-text">
+          <label className="set-field-label" htmlFor="set-proxy-host">
+            {t('setProxyHost')}
+          </label>
+        </div>
+        <input
+          id="set-proxy-host"
+          className="set-input"
+          type="text"
+          value={draft.host}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(e) => patch({ host: e.target.value })}
+        />
+      </div>
+      <div className="set-field">
+        <div className="set-field-text">
+          <label className="set-field-label" htmlFor="set-proxy-port">
+            {t('setProxyPort')}
+          </label>
+        </div>
+        <input
+          id="set-proxy-port"
+          className="set-input"
+          type="number"
+          min={1}
+          max={65535}
+          step={1}
+          value={draft.port}
+          onChange={(e) => patch({ port: Number.parseInt(e.target.value, 10) || 0 })}
+        />
+      </div>
+      <Field
+        label={t('setProxyUrl')}
+        value={maskedUrl || t('setProxyUrlEmpty')}
+        valueTitle={maskedUrl || undefined}
+      />
+      {encryption === 'plaintext' && (
+        <div className="set-field-desc set-ai-note">{t('setProxyPlaintextWarn')}</div>
+      )}
+      <div className="set-pane-footer">
+        <AiStatusPill
+          status={
+            testing
+              ? { kind: 'testing', text: t('setAiTesting') }
+              : testResult
+                ? testResult.ok
+                  ? { kind: 'ok', text: t('setProxyTestOk') }
+                  : { kind: 'err', text: testResult.error || t('setProxyTestFail') }
+                : saved
+                  ? { kind: 'ok', text: t('setAiSaved') }
+                  : null
+          }
+        />
+        <button className="set-btn" disabled={testing} onClick={test}>
+          {t('setAiTest')}
+        </button>
+        <button className="set-btn primary" disabled={!dirty} onClick={save}>
+          {t('setAiSave')}
         </button>
       </div>
     </>
@@ -1409,6 +1638,7 @@ export function SettingsModal({
               <IntegrationsPane t={t} onStatus={(st) => onSkillUpdateDue?.(skillUpdateDue(st))} />
             )}
             {section === 'system' && <SystemInfoPane t={t} dateLocale={dateLocale} />}
+            {section === 'proxy' && <ProxyPane t={t} />}
             {section === 'about' && (
               <>
                 <h3 className="set-pane-title">{t('setSecAbout')}</h3>

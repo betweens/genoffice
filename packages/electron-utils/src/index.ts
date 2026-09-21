@@ -92,3 +92,23 @@ export {
   type RendererHost,
 } from './renderer-scheme'
 export { installRendererProtocol, registerRendererScheme } from './renderer-protocol'
+export {
+  CORPORATE_PROXY_KEY,
+  DEFAULT_PROXY_HOST,
+  DEFAULT_PROXY_PORT,
+  buildProxyUrl,
+  corporateProxyUrlFromSettings,
+  corporateProxyUrlFromStored,
+  maskProxyUrl,
+  normalizeProxyPort,
+  parseCorporateProxyDraft,
+  parseStoredCorporateProxy,
+  passwordEncryptionOf,
+  passwordFromStored,
+  serializeCorporateProxy,
+  toCorporateProxyView,
+  type CorporateProxyDraft,
+  type CorporateProxyView,
+  type ProxyPasswordEncryption,
+  type StoredCorporateProxy,
+} from './corporate-proxy'

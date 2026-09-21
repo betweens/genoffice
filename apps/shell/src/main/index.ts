@@ -72,6 +72,13 @@ import { installCliLinkBestEffort } from './cli-link'
 import { registerIntegrationsIpc } from './integrations-ipc'
 import { collectSystemInfo } from './system-info'
 import {
+  electronProxyCrypto,
+  loadProxySettings,
+  saveProxySettings,
+  savedCorporateProxyUrl,
+  testProxySettings,
+} from './proxy-settings'
+import {
   ANALYTICS_ENABLED_KEY,
   analyticsEnabledFrom,
   createAnalytics,
@@ -103,7 +110,8 @@ import {
   genofficeLogout,
   gskLoginInfo,
   loadGenofficeAuth,
-  setGskProxyUrl,
+  installFetchProxy,
+  clearFetchProxy,
   startGenofficeLogin,
 } from '@genoffice/ai-search'
 
@@ -3262,6 +3270,19 @@ function registerHomeIpc(): void {
     }),
   )
 
+  ipcMain.handle(HOME_CHANNELS.getProxySettings, () => loadProxySettings(APP_SETTINGS_PATH()))
+
+  ipcMain.handle(HOME_CHANNELS.setProxySettings, async (_event, raw: unknown) => {
+    const view = saveProxySettings(APP_SETTINGS_PATH(), raw)
+    proxyBootstrap = installMainProcessProxy()
+    await proxyBootstrap
+    return view
+  })
+
+  ipcMain.handle(HOME_CHANNELS.testProxySettings, (_event, raw: unknown) =>
+    testProxySettings(raw, { settingsPath: APP_SETTINGS_PATH() }),
+  )
+
   ipcMain.handle(HOME_CHANNELS.recents, (_event, query: unknown): RecentPage =>
     pageRecentPaths(readRecentFiles(), query, new Set(readStarredFiles())),
   )
@@ -4700,6 +4721,11 @@ function installDockMenu(): void {
 let proxyBootstrap: Promise<void> = Promise.resolve()
 
 async function installMainProcessProxy(): Promise<void> {
+  const savedUrl = savedCorporateProxyUrl(APP_SETTINGS_PATH(), electronProxyCrypto())
+  if (savedUrl) {
+    await installFetchProxy(savedUrl)
+    return
+  }
   let proxyUrl = [
     process.env.HTTPS_PROXY,
     process.env.https_proxy,
@@ -4719,18 +4745,11 @@ async function installMainProcessProxy(): Promise<void> {
       /* no system proxy */
     }
   }
-  if (!proxyUrl) return
-  // spawned gsk CLI children (login/search/…) do their own fetch and never see
-  // the dispatcher below — forward the proxy to them via env
-  setGskProxyUrl(proxyUrl)
-  try {
-    const { ProxyAgent, setGlobalDispatcher } = await import('undici')
-    setGlobalDispatcher(new ProxyAgent(proxyUrl))
-    // strip user:pass credentials before logging
-    console.log('[proxy] main-process fetch via', proxyUrl.replace(/\/\/[^@/]*@/, '//***@'))
-  } catch (e) {
-    console.warn('[proxy] failed to set ProxyAgent:', e)
+  if (!proxyUrl) {
+    await clearFetchProxy()
+    return
   }
+  await installFetchProxy(proxyUrl)
 }
 
 // ---- lifecycle (the shell is the only owner) ----

@@ -57,7 +57,7 @@ function readComputerName(hostname: string): string {
   return hostname
 }
 
-function readUser(homedir: string): { username: string; homedir: string } {
+export function readUser(homedir: string): { username: string; homedir: string } {
   try {
     const info = os.userInfo()
     return {
@@ -70,6 +70,11 @@ function readUser(homedir: string): { username: string; homedir: string } {
       homedir,
     }
   }
+}
+
+/** Same source as Settings → This computer "System user". */
+export function systemUsername(): string {
+  return readUser(os.homedir()).username
 }
 
 /** Collect a support-safe snapshot of this machine. Electron-only fields are

@@ -13,7 +13,8 @@
     "./remote-image": "./src/remote-image.ts",
     "./renderer-protocol": "./src/renderer-protocol.ts",
     "./renderer-scheme": "./src/renderer-scheme.ts",
-    "./safe-remote-url": "./src/safe-remote-url.ts"
+    "./safe-remote-url": "./src/safe-remote-url.ts",
+    "./corporate-proxy": "./src/corporate-proxy.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

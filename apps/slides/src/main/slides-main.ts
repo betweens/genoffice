@@ -17,17 +17,18 @@ import {
   shell,
   webContents,
   WebContentsView,
+  safeStorage,
 } from 'electron'
 import type { WebContents } from 'electron'
 import { execFile } from 'node:child_process'
 import { readFile, writeFile, rm, stat, mkdir, open } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { cleanupExpiredGeneratedPages } from './generated-page-temp'
 import { exportSlidesPdf } from './pdf-export'
-import { gskApiKey, gskSlideGenerate, setGskProxyUrl } from '@genoffice/ai-search'
+import { gskApiKey, gskSlideGenerate, installFetchProxy } from '@genoffice/ai-search'
 import {
   appMenuLabels,
   configuredDefaultSaveDir,
@@ -45,6 +46,7 @@ import {
   installRendererProtocol,
   registerRendererScheme,
   rendererUrl,
+  corporateProxyUrlFromSettings,
 } from '@genoffice/electron-utils'
 import {
   resolveGroupChildId,
@@ -4669,23 +4671,35 @@ export function installSlidesMenu(): void {
 }
 
 /**
- * Attach a proxy to the main process's global fetch. Environment variables take priority;
- * otherwise, after app ready, read the system proxy via session.resolveProxy() (the critical
- * path for packaged builds launched by double-click).
+ * Attach a proxy to the main process's global fetch. Saved Settings proxy
+ * (userData/app-settings.json) takes priority so the shell Settings → Proxy pane
+ * applies here too; then environment variables; then the system proxy via
+ * session.resolveProxy() (packaged builds launched by double-click).
  */
+function savedSettingsProxyUrl(): string | null {
+  try {
+    const raw: unknown = JSON.parse(
+      readFileSync(join(app.getPath('userData'), 'app-settings.json'), 'utf8'),
+    )
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+    return corporateProxyUrlFromSettings(raw as Record<string, unknown>, (cipher) => {
+      try {
+        if (!safeStorage.isEncryptionAvailable()) return null
+        return safeStorage.decryptString(Buffer.from(cipher, 'base64'))
+      } catch {
+        return null
+      }
+    })
+  } catch {
+    return null
+  }
+}
+
 async function applyMainProcessProxy(): Promise<void> {
-  const setDispatcher = async (proxyUrl: string) => {
-    // spawned gsk CLI children do their own fetch and never see the
-    // dispatcher below — forward the proxy to them via env
-    setGskProxyUrl(proxyUrl)
-    try {
-      const { ProxyAgent, setGlobalDispatcher } = await import('undici')
-      setGlobalDispatcher(new ProxyAgent(proxyUrl))
-      // strip user:pass credentials before logging
-      console.log('[proxy] main-process fetch via', proxyUrl.replace(/\/\/[^@/]*@/, '//***@'))
-    } catch (e) {
-      console.warn('[proxy] failed to set ProxyAgent:', e)
-    }
+  const saved = savedSettingsProxyUrl()
+  if (saved) {
+    await installFetchProxy(saved)
+    return
   }
   const envProxy =
     process.env.HTTPS_PROXY ||
@@ -4695,7 +4709,7 @@ async function applyMainProcessProxy(): Promise<void> {
     process.env.ALL_PROXY ||
     process.env.all_proxy
   if (envProxy) {
-    await setDispatcher(envProxy)
+    await installFetchProxy(envProxy)
     return
   }
   // No environment variables: read the system proxy (requires app ready)
@@ -4707,7 +4721,7 @@ async function applyMainProcessProxy(): Promise<void> {
     // resolveProxy returns strings like "PROXY 127.0.0.1:1087" or "DIRECT"
     const m = /PROXY\s+([^;]+)/i.exec(resolved || '')
     if (m) {
-      await setDispatcher(`http://${m[1].trim()}`)
+      await installFetchProxy(`http://${m[1].trim()}`)
     } else {
       console.log('[proxy] system proxy = DIRECT, no dispatcher set')
     }

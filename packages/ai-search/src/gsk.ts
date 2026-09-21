@@ -110,7 +110,7 @@ export function hasGskAuth(): boolean {
 
 // The main process's undici dispatcher (see the apps' proxy bootstraps) never
 // reaches child processes: without forwarding they dial genspark.ai directly.
-export { setGskProxyUrl, gskProxyUrl } from './shared'
+export { setGskProxyUrl, gskProxyUrl, installFetchProxy, clearFetchProxy } from './shared'
 
 /**
  * env for gsk CLI children: Electron-as-Node plus proxy forwarding. The CLI

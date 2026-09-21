@@ -55,8 +55,8 @@ let explicitProxyUrl = ''
 
 /**
  * Proxy resolved by the apps' proxy bootstraps (env vars, else the system
- * proxy via session.resolveProxy); consumed by gskChildEnv() and the login
- * flow's proxy fallback.
+ * proxy via session.resolveProxy, else the Settings corporate proxy);
+ * consumed by gskChildEnv() and the login flow's proxy fallback.
  */
 export function setGskProxyUrl(url: string): void {
   explicitProxyUrl = url
@@ -64,4 +64,36 @@ export function setGskProxyUrl(url: string): void {
 
 export function gskProxyUrl(): string {
   return explicitProxyUrl
+}
+
+/** Strip user:pass from a proxy URL before logging. */
+export function maskProxyCredentials(url: string): string {
+  return url.replace(/\/\/[^@/]*@/, '//***@')
+}
+
+/**
+ * Attach a proxy to undici's global fetch and to gsk CLI children. Callers
+ * must already have stripped nothing — the password stays in the URL so
+ * ProxyAgent can authenticate; only the log line is masked.
+ */
+export async function installFetchProxy(proxyUrl: string): Promise<void> {
+  setGskProxyUrl(proxyUrl)
+  try {
+    const { ProxyAgent, setGlobalDispatcher } = await import('undici')
+    setGlobalDispatcher(new ProxyAgent(proxyUrl))
+    console.log('[proxy] main-process fetch via', maskProxyCredentials(proxyUrl))
+  } catch (e) {
+    console.warn('[proxy] failed to set ProxyAgent:', e)
+  }
+}
+
+/** Drop a previously installed undici ProxyAgent (Settings → disable proxy). */
+export async function clearFetchProxy(): Promise<void> {
+  setGskProxyUrl('')
+  try {
+    const { Agent, setGlobalDispatcher } = await import('undici')
+    setGlobalDispatcher(new Agent())
+  } catch {
+    /* undici unavailable */
+  }
 }
