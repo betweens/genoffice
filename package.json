@@ -44,7 +44,7 @@
     "dist:linux": "npm run notices && npm run build:all && npm run dist:linux -w @genoffice/shell"
   },
   "dependencies": {
-    "ws": "^8.21.1"
+    "ws": "^8.21.3"
   },
   "overrides": {
     "nanoid@3": "^3.3.17",
