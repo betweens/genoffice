@@ -69,12 +69,6 @@
   cursor: default;
 }
 
-.proxy-gate-static {
-  font-size: 13px;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
 .proxy-gate-error {
   margin: 0 0 8px;
   font-size: 13px;
