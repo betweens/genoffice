@@ -1,10 +1,8 @@
 import { execSync, spawn } from 'node:child_process'
 import {
   copyFileSync,
-  cpSync,
   existsSync,
   readFileSync,
-  readdirSync,
   renameSync,
   rmSync,
   statSync,
@@ -270,6 +268,7 @@ import {
 import type { TabKind } from '../shared/tabs-api'
 import { TABS_CHANNELS } from '../shared/tabs-api'
 import { showErrorDialog } from './error-dialog'
+import { migrateUserDataOnce } from './migrate-user-data'
 import {
   matchesExtFamily,
   normalizeRecentQuery,
@@ -327,12 +326,11 @@ if (headlessArgv.kind !== 'none') {
   app.dock?.hide()
 }
 
-// The product rename from "AI Office" to AI Office changed the userData path; migrate old user data once
+// This fork renamed GenOffice → AI Office; copy the previous userData once
+// when the new location is empty. Same-path is a no-op (productName is
+// already "AI Office", so a source named "AI Office" equals userData).
 if (app.isPackaged) {
-  const oldDir = join(app.getPath('appData'), 'AI Office')
-  const newDir = app.getPath('userData')
-  const newEmpty = !existsSync(newDir) || readdirSync(newDir).length === 0
-  if (newEmpty && existsSync(oldDir)) cpSync(oldDir, newDir, { recursive: true })
+  migrateUserDataOnce(app.getPath('appData'), app.getPath('userData'), ['GenOffice'])
 }
 
 // module build outputs: packaged builds carry them as extraResources
