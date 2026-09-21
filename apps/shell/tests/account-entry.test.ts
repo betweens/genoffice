@@ -10,6 +10,8 @@ import { LocaleProvider } from '../src/renderer/src/locale'
 
 vi.mock('../src/renderer/src/SettingsModal', () => ({
   SettingsModal: () => null,
+  defaultSettingsSection: () => 'aiModel',
+  ENTERPRISE_HIDE_ACCOUNT: true,
 }))
 vi.mock('../src/renderer/src/IntegrationsPane', () => ({
   skillUpdateDue: () => false,
