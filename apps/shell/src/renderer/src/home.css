@@ -268,6 +268,11 @@ body.vib .home {
   color: #fff;
 }
 
+.account-avatar.identified {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .account-avatar.waiting {
   color: var(--accent);
 }
@@ -285,6 +290,10 @@ body.vib .home {
 
 .account-spinner {
   animation: account-spin 0.9s linear infinite;
+}
+
+.account-user-icon {
+  display: block;
 }
 
 @keyframes account-spin {
