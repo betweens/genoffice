@@ -350,16 +350,21 @@ describe('activeProvider', () => {
 })
 
 describe('gskToolsEnabled', () => {
-  it('defaults on, survives resolveAiSettings, and only an explicit false turns it off', () => {
-    expect(cloudToolsEnabled(defaultAiSettings())).toBe(true)
-    // pre-toggle settings file (field absent) stays on
+  it('enterprise policy forces off on default and resolve, even when a stored file had it on', () => {
+    expect(defaultAiSettings().gskToolsEnabled).toBe(false)
+    expect(cloudToolsEnabled(defaultAiSettings())).toBe(false)
     const legacy = resolveAiSettings({ providers: {} as never }, defaultAiSettings())
-    expect(cloudToolsEnabled(legacy)).toBe(true)
-    const off = resolveAiSettings(
-      { providers: {} as never, gskToolsEnabled: false },
+    expect(cloudToolsEnabled(legacy)).toBe(false)
+    const storedOn = resolveAiSettings(
+      { providers: {} as never, gskToolsEnabled: true },
       defaultAiSettings(),
     )
-    expect(off.gskToolsEnabled).toBe(false)
-    expect(cloudToolsEnabled(off)).toBe(false)
+    expect(storedOn.gskToolsEnabled).toBe(false)
+    expect(cloudToolsEnabled(storedOn)).toBe(false)
+  })
+
+  it('treats an explicit false as off when the helper is used without the policy overlay', () => {
+    expect(cloudToolsEnabled({ gskToolsEnabled: false })).toBe(false)
+    expect(cloudToolsEnabled({})).toBe(true)
   })
 })

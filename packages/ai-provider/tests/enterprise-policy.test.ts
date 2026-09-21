@@ -86,6 +86,7 @@ describe('enterpriseAiPolicy', () => {
     expect(policy.searchProvider).toBe('bocha')
     expect(policy.lockMediaProvider).toBe(true)
     expect(policy.lockSearchProvider).toBe(true)
+    expect(policy.hideGskTools).toBe(true)
     expect(policy.allowedProviders).toEqual(ENTERPRISE_ALLOWED_PROVIDERS)
     expect([...policy.allowedProviders]).toEqual(['custom'])
   })
@@ -104,11 +105,18 @@ describe('applyEnterpriseAiPolicy', () => {
     expect(locked.providers.kimi.apiKey).toBe('sk-user-placeholder')
     expect(locked.search?.provider).toBe('bocha')
     expect(locked.search?.providers.bocha.apiKey).toBe('bocha-placeholder-5678')
+    expect(locked.gskToolsEnabled).toBe(false)
     expect(locked.media?.imageProvider).toBe('custom')
     expect(locked.media?.analysisProvider).toBe('custom')
     expect(locked.media?.videoAnalysisProvider).toBe('custom')
     expect(locked.media?.providers.custom.apiKey).toBe('sk-enterprise-placeholder-1234')
     expect(locked.media?.providers.custom.baseUrl).toBe('https://llm.example.internal/v1')
+  })
+
+  it('turns Genspark cloud tools off even when the stored file left them on', () => {
+    const settings = defaultAiSettings(undefined, EMPTY_ENV)
+    settings.gskToolsEnabled = true
+    expect(applyEnterpriseAiPolicy(settings, EMPTY_ENV).gskToolsEnabled).toBe(false)
   })
 
   it('does not invent a key or URL when env is unset', () => {
@@ -158,6 +166,7 @@ describe('resolveAiSettings + activeProvider honor the lock', () => {
     expect(resolved.providers.custom.baseUrl).toBe('')
     expect(resolved.search?.provider).toBe(ENTERPRISE_LOCKED_SEARCH_PROVIDER)
     expect(resolved.media?.imageProvider).toBe(ENTERPRISE_LOCKED_MEDIA_PROVIDER)
+    expect(resolved.gskToolsEnabled).toBe(false)
   })
 
   it('wins over a hand-edited search/media vendor selection', () => {
@@ -199,6 +208,7 @@ describe('persistEnterpriseAiSettings', () => {
     const incoming = applyEnterpriseAiPolicy(defaultAiSettings(undefined, EMPTY_ENV), SEEDED_ENV)
     const persisted = persistEnterpriseAiSettings(incoming, { providers: {} as never }, SEEDED_ENV)
     expect(persisted.provider).toBe('custom')
+    expect(persisted.gskToolsEnabled).toBe(false)
     expect(persisted.providers.custom.apiKey).toBe('')
     expect(persisted.providers.custom.baseUrl).toBe('')
     expect(persisted.providers.custom.model).toBe('acme-chat')
@@ -207,6 +217,12 @@ describe('persistEnterpriseAiSettings', () => {
     expect(persisted.media?.imageProvider).toBe('custom')
     expect(persisted.media?.providers.custom.apiKey).toBe('')
     expect(persisted.media?.providers.custom.baseUrl).toBe('')
+  })
+
+  it('writes gskToolsEnabled false even if the renderer sent true', () => {
+    const incoming = defaultAiSettings(undefined, EMPTY_ENV)
+    incoming.gskToolsEnabled = true
+    expect(persistEnterpriseAiSettings(incoming, incoming, EMPTY_ENV).gskToolsEnabled).toBe(false)
   })
 
   it('refuses a masked or blank key so Save cannot wipe a stored secret', () => {

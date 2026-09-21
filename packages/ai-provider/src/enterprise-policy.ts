@@ -14,8 +14,9 @@ import type {
 
 /**
  * Enterprise fork: chat and media are locked to the OpenAI-compatible `custom`
- * provider; web search is locked to Bocha. Runtime credentials come from
- * process env (Electron inherits launch env); nothing here hardcodes secrets.
+ * provider; web search is locked to Bocha; Genspark cloud tools stay off (the
+ * Settings switch is hidden). Runtime credentials come from process env
+ * (Electron inherits launch env); nothing here hardcodes secrets.
  *
  *   GENOFFICE_AI_PROVIDER       coerced to `custom`
  *   GENOFFICE_AI_BASE_URL       OpenAI-compatible base URL (chat; media fallback)
@@ -51,6 +52,8 @@ export interface EnterpriseAiUiPolicy {
   readonly mediaProvider: typeof ENTERPRISE_LOCKED_MEDIA_PROVIDER
   readonly lockSearchProvider: true
   readonly searchProvider: typeof ENTERPRISE_LOCKED_SEARCH_PROVIDER
+  /** Genspark-only cloud-tools switch — hidden; settings always persist false. */
+  readonly hideGskTools: true
 }
 
 /** UI lock flags — no secrets, safe to ship in the renderer bundle. */
@@ -64,6 +67,7 @@ export const ENTERPRISE_AI_UI_POLICY: EnterpriseAiUiPolicy = {
   mediaProvider: ENTERPRISE_LOCKED_MEDIA_PROVIDER,
   lockSearchProvider: true,
   searchProvider: ENTERPRISE_LOCKED_SEARCH_PROVIDER,
+  hideGskTools: true,
 }
 
 export interface EnterpriseAiPolicy extends EnterpriseAiUiPolicy {
@@ -226,9 +230,9 @@ function lockMediaSettings(
 
 /**
  * Force chat `provider = custom`, media caps to `custom`, search to `bocha`,
- * and overlay env-supplied keys / URLs / model. Env key and URL always win
- * when set. Env chat model only fills an empty slot so the Settings free-text
- * field stays editable after a prefill.
+ * Genspark cloud tools off, and overlay env-supplied keys / URLs / model.
+ * Env key and URL always win when set. Env chat model only fills an empty
+ * slot so the Settings free-text field stays editable after a prefill.
  */
 export function applyEnterpriseAiPolicy(settings: AiSettings, env?: EnvLike): AiSettings {
   const policy = enterpriseAiPolicy(env)
@@ -242,6 +246,7 @@ export function applyEnterpriseAiPolicy(settings: AiSettings, env?: EnvLike): Ai
   return {
     ...settings,
     provider: ENTERPRISE_LOCKED_PROVIDER,
+    gskToolsEnabled: false,
     providers: {
       ...settings.providers,
       custom,
@@ -252,10 +257,10 @@ export function applyEnterpriseAiPolicy(settings: AiSettings, env?: EnvLike): Ai
 }
 
 /**
- * Save path: lock chat/media/search providers, refuse masked keys, and keep
- * env-owned key/URL off disk (they are re-injected on every resolve). A
- * blank/masked incoming key restores the previous on-disk value so Save cannot
- * wipe policy.
+ * Save path: lock chat/media/search providers, force Genspark cloud tools off,
+ * refuse masked keys, and keep env-owned key/URL off disk (they are
+ * re-injected on every resolve). A blank/masked incoming key restores the
+ * previous on-disk value so Save cannot wipe policy.
  */
 export function persistEnterpriseAiSettings(
   incoming: AiSettings,
@@ -310,6 +315,7 @@ export function persistEnterpriseAiSettings(
   return {
     ...next,
     provider: ENTERPRISE_LOCKED_PROVIDER,
+    gskToolsEnabled: false,
     providers: {
       ...next.providers,
       custom: {

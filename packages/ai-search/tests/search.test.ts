@@ -333,9 +333,16 @@ describe('webSearch (SearchOptions)', () => {
 describe('search-tools', () => {
   it('maps the settings block onto SearchOptions', () => {
     const base = defaultAiSettings()
-    expect(searchOptionsFromSettings(base)).toEqual({ useGsk: true })
-    expect(searchOptionsFromSettings({ ...base, gskToolsEnabled: false })).toEqual({
+    expect(searchOptionsFromSettings(base)).toEqual({
       useGsk: false,
+      bochaKey: '',
+      prefer: 'bocha',
+    })
+    // enterprise lock: Genspark cloud tools cannot be turned back on
+    expect(searchOptionsFromSettings({ ...base, gskToolsEnabled: true })).toEqual({
+      useGsk: false,
+      bochaKey: '',
+      prefer: 'bocha',
     })
     const serper = {
       ...base,
@@ -344,7 +351,11 @@ describe('search-tools', () => {
         providers: { serper: { apiKey: 'k' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
       },
     }
-    expect(searchOptionsFromSettings(serper)).toEqual({ useGsk: false, serperKey: 'k' })
+    expect(searchOptionsFromSettings(serper)).toEqual({
+      useGsk: false,
+      bochaKey: '',
+      prefer: 'bocha',
+    })
     const tavily = {
       ...base,
       search: {
@@ -354,8 +365,8 @@ describe('search-tools', () => {
     }
     expect(searchOptionsFromSettings(tavily)).toEqual({
       useGsk: false,
-      tavilyKey: 't',
-      prefer: 'tavily',
+      bochaKey: '',
+      prefer: 'bocha',
     })
     const bocha = {
       ...base,
@@ -369,7 +380,7 @@ describe('search-tools', () => {
       bochaKey: 'b',
       prefer: 'bocha',
     })
-    // no key → genspark chain
+    // empty Bocha key stays on Bocha; no Genspark fallback
     const empty = {
       ...base,
       search: {
@@ -377,7 +388,11 @@ describe('search-tools', () => {
         providers: { serper: { apiKey: '' }, tavily: { apiKey: '' }, bocha: { apiKey: '' } },
       },
     }
-    expect(searchOptionsFromSettings(empty)).toEqual({ useGsk: true })
+    expect(searchOptionsFromSettings(empty)).toEqual({
+      useGsk: false,
+      bochaKey: '',
+      prefer: 'bocha',
+    })
   })
 
   it('reports a rejected key as a failure instead of the silent free fallback', async () => {

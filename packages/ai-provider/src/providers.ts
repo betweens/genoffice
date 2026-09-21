@@ -307,7 +307,8 @@ export const AI_PROVIDERS: AiProviderMeta[] = [
  * has no hardcoded keys.
  *
  * Enterprise fork: the selected chat provider is always `custom`. Env
- * (`GENOFFICE_AI_*`) seeds the custom slot when set.
+ * (`GENOFFICE_AI_*`) seeds the custom slot when set. Genspark cloud tools
+ * stay off.
  */
 export function defaultAiSettings(
   defaultApiKeys?: Partial<Record<AiProviderId, string>>,
@@ -326,7 +327,7 @@ export function defaultAiSettings(
     {
       provider: ENTERPRISE_LOCKED_PROVIDER,
       providers,
-      gskToolsEnabled: true,
+      gskToolsEnabled: false,
       media: defaultAiMediaSettings(),
       search: defaultAiSearchSettings(),
     },
