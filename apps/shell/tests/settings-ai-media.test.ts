@@ -144,6 +144,11 @@ describe('Settings AI Media pane', () => {
     const subtitles = Array.from(host.querySelectorAll('.set-pane-subtitle')).map(
       (el) => el.textContent ?? '',
     )
-    expect(subtitles).toEqual(['Web search', 'Image generation', 'Image analysis', 'Video analysis'])
+    expect(subtitles).toEqual([
+      'Web search',
+      'Image generation',
+      'Image analysis',
+      'Video analysis',
+    ])
   })
 })

@@ -297,9 +297,9 @@ describe('applyEnterpriseAiPolicy', () => {
   })
 
   it('defaults Custom video model to the analysis model when VIDEO_MODEL is unset', () => {
-    expect(
-      readEnterpriseAiEnv({ GENOFFICE_AI_ANALYSIS_MODEL: 'qwen3-vl' }, {}).videoModel,
-    ).toBe('qwen3-vl')
+    expect(readEnterpriseAiEnv({ GENOFFICE_AI_ANALYSIS_MODEL: 'qwen3-vl' }, {}).videoModel).toBe(
+      'qwen3-vl',
+    )
     const locked = applyEnterpriseAiPolicy(defaultAiSettings(undefined, EMPTY_ENV), EMPTY_ENV, {
       ...BAKED_DEFAULTS,
       GENOFFICE_AI_VIDEO_MODEL: '',
