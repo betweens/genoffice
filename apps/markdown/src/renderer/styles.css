@@ -981,6 +981,32 @@ html.genoffice-popover-open .ribbon-tabs {
   height: 18px;
 }
 
+/* AI Office product logo (PNG) in chrome */
+img.genspark-mark {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 5px;
+  object-fit: contain;
+  /* prefer sharper downscale for the brand plate */
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.ai-panel-title .genspark-mark {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.5px;
+}
+
+.ai-rail .genspark-mark {
+  width: 22px;
+  height: 22px;
+}
+
+.rb-big-icon .genspark-mark {
+  width: 26px;
+  height: 26px;
+}
+
 .ai-panel-header-actions {
   display: flex;
   align-items: center;

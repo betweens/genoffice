@@ -1448,7 +1448,7 @@ export default function App() {
               aria-label={t('aiOpenAssistant')}
               onClick={() => setAiOpen(true)}
             >
-              <GensparkMark size={18} />
+              <GensparkMark size={22} />
             </button>
           )}
           {/* stays mounted while collapsed: an in-flight run, its snapshots and the loop context survive */}
