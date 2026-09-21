@@ -2854,7 +2854,7 @@ function RibbonInner({
                   <span className="rb-big-icon">
                     <GensparkMark size={26} />
                   </span>
-                    <span>AI Office</span>
+                  <span>AI Office</span>
                 </button>
                 <button
                   className="rb-big ai-entry"
