@@ -1120,7 +1120,7 @@ export function AiPanel({
         onPointerDown={startResize}
         role="separator"
         aria-orientation="vertical"
-        aria-label="AI Office"
+        aria-label={t('aiOpenAssistant')}
       />
       <header className="ai-panel-header">
         <span className="ai-panel-title">

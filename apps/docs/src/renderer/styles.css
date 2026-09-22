@@ -9275,6 +9275,8 @@ body.docs-crop-active
   .status-bar,
   .ai-dock,
   .nav-pane,
+  .paste-chip,
+  .ai-ask-pop,
   .ruler,
   .find-panel {
     display: none !important;
